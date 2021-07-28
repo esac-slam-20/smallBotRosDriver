@@ -1,0 +1,3 @@
+[submodule "src/timerAndColor"]
+	path = src/timerAndColor
+	url = https://tea.lan.bigkeer.cn/SLAM2020/timerAndColor
