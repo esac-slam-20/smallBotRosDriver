@@ -3,6 +3,25 @@
 
 namespace smallBot
 {
+    /**
+     * @brief Get the bit object i从0开始，越小越低位，一次取八位
+     * 
+     * @tparam i 
+     * @tparam T 
+     * @param s 
+     * @return uint8_t 
+     */
+    template <int i, typename T>
+    static uint8_t get_bit(T s)
+    {
+        return ((*(int *)(&s)) & (0xff << i * 8)) >> (i * 8);
+    }
+    template <int i, typename T>
+    static void set_bit(uint8_t ch, T &dst)
+    {
+        dst |= (0xff << i * 8);
+        dst &= (*(int *)(&ch)) << i * 8;
+    };
     class serial_protocol
     {
     public:
@@ -13,7 +32,7 @@ namespace smallBot
             inline static const uint8_t set_encode = 0x20;
             inline static const uint8_t set_pid = 0x21;
             inline static const uint8_t set_save = 0x2e;
-            inline static const uint8_t set_ingnore = 0x2f;
+            inline static const uint8_t set_ignore = 0x2f;
             //接收到的包用的
             inline static const uint8_t get_ack = 0x00;
             inline static const uint8_t get_nack = 0x01;
@@ -42,14 +61,14 @@ namespace smallBot
          * 
          * @param cmd 数据类型，请使用smallBot::serial_protocol::CMD
          *            这里不使用enum的原因是因为不想再查一次表（enum是int）
-         * @param len 数据长度
          * @param data 数据地址
+         * @param len 数据长度
          * @return true 发送成功
          * @return false 发送失败，失败并不保证说一定不向串口写入东西，可能写一半啥的
          */
         bool write_oneFrame(const uint8_t &cmd,
-                            const uint8_t &len,
-                            const uint8_t *data);
+                            const uint8_t *data,
+                            const uint8_t &len);
 
         /**
          * @brief 接收一帧数据，核心实现，所有和接收相关的数据最后都会通过这个实现
@@ -71,23 +90,21 @@ namespace smallBot
          * @return true 成功
          * @return false 帧错误
          */
-        bool send_speed(const int16_t &sp1 = speed::nothing,
-                        const int16_t &sp2 = speed::nothing,
-                        const int16_t &sp3 = speed::nothing,
-                        const int16_t &sp4 = speed::nothing);
+        bool send_speed(int16_t sp1 = speed::nothing,
+                        int16_t sp2 = speed::nothing,
+                        int16_t sp3 = speed::nothing,
+                        int16_t sp4 = speed::nothing);
+        bool send_encoder_tick(uint16_t tick);
+        bool send_pid(float p, float i, float d);
+        bool send_save();
+        bool send_ignore();
 
-        /**
-         * @brief 接收编码器数据
-         * 
-         * @param o1 encode1 tick
-         * @param o2 encode2 tick
-         * @param o3 encode3 tick
-         * @param o4 encode4 tick
-         * @return true 成功
-         * @return false 帧错误
-         */
-        bool recive_encodes(int32_t &o1, int32_t &o2,
-                            int32_t &o3, int32_t &o4);
+        void analysis_encodes(uint8_t *buffer, int32_t &o1, int32_t &o2,
+                              int32_t &o3, int32_t &o4);
+
+        uint8_t recive_type(uint8_t *buffer);
+
+        uint16_t get_crc(const uint8_t &cmd, const uint8_t &len, const uint8_t *data);
 
     private:
         boost::asio::io_service ioserv; //这个要先初始化，写在前面

@@ -13,3 +13,15 @@
 > 主要是串口要用到
 4. g++
 > 要支持c++17及以上
+
+## 安装方式
+```
+git clone xxx
+git submodule update --init
+cd ws
+catkin_make
+```
+## 运行方式
+```
+rosrun smallBotRosDriver control_serial port baud_rate
+```

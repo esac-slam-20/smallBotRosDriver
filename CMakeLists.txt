@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(smallBotRosDriver)
-
+add_compile_options(-std=c++17)
+SET(CMAKE_BUILD_TYPE "Release")
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -10,7 +11,7 @@ project(smallBotRosDriver)
 find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -113,7 +114,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+ ${catkin_INCLUDE_DIRS}
+ ${Boost_INCLUDE_DIRS}
+ src
 )
 
 ## Declare a C++ library
@@ -129,9 +132,17 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/smallBotRosDriver_node.cpp)
+add_library(serial_protocol
+  src/serial_protocol.cpp
+)
+target_link_libraries(serial_protocol
+   ${Boost_LIBRARIES}
+)
 
-## Rename C++ executable without prefix
+add_executable(control_serial src/control_serial.cpp)
+target_link_libraries(control_serial
+  serial_protocol
+)
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
