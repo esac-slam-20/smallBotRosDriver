@@ -137,6 +137,7 @@ add_library(serial_protocol
 )
 target_link_libraries(serial_protocol
    ${Boost_LIBRARIES}
+   pthread
 )
 
 add_executable(control_serial src/control_serial.cpp)
