@@ -1,4 +1,6 @@
 #include "serial_protocol.h"
+#include <iostream>
+
 namespace smallBot
 {
     const size_t BUFFER_UPPER = 512;
@@ -29,12 +31,19 @@ namespace smallBot
         //TODO
         return 0;
     }
+    void printHex(uint8_t array[], int len)
+    {
+        for (int i = 0; i < len; ++i)
+            std::cout << std::hex << (uint32_t)array[i] << " ";
+        std::cout << std::endl;
+    }
+
     bool check_frame_complete(uint8_t buffer[BUFFER_UPPER], size_t len)
     {
         //如果len<6,直接不完整
         if (len < 6)
             return false;
-        uint8_t frame_len = buffer[1];
+        uint8_t frame_len = buffer[2];
         //长度不够一帧，不完整
         if (frame_len + 6 != len)
             return false;
@@ -129,6 +138,7 @@ namespace smallBot
     {
         std::lock_guard<std::mutex> lg(send_qLock);
         send_q.push(frame);
+        send_cv.notify_one();
     }
 
     void serial_protocol::call_me_thread()

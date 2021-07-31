@@ -35,7 +35,7 @@ namespace smallBot
             inline static const uint8_t get_ack = 0x00;
             inline static const uint8_t get_nack = 0x01;
             inline static const uint8_t get_invalid_args = 0x02;
-            inline static const uint8_t get_odom = 0x08;
+            inline static const uint8_t get_odom = 0x80;
 
             //包头包尾巴
             inline static const uint8_t head = 0x55;
