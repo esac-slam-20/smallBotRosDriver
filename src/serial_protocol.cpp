@@ -128,6 +128,7 @@ namespace smallBot
                                                                f.len));
                 std::unique_lock<std::mutex> tL(timeout_Lock);
                 call_me_thread_handle = std::thread(std::bind(&serial_protocol::call_me_thread, this));
+                call_me_thread_handle.detach();
                 timeout_cv.wait(tL);
                 //被唤醒之后，判断一下根据id判断是否收到了ack，收到就ok，没收到就重发
             } while (lastest_ack_id <= id);
@@ -153,9 +154,12 @@ namespace smallBot
     {
 #ifndef DEBUG
         quitFlag = true;
-        call_me_thread_handle.join();
-        sends_thread_handle.join();
-        receive_thread_handle.join();
+        if (call_me_thread_handle.joinable())
+            call_me_thread_handle.join();
+        if (sends_thread_handle.joinable())
+            sends_thread_handle.join();
+        if (receive_thread_handle.joinable())
+            receive_thread_handle.join();
 
         ioserv.run();
 #endif
