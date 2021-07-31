@@ -1,14 +1,12 @@
 #include "serial_protocol.h"
 #include "timerAndColor/color.h"
 using namespace smallBot;
-std::mutex m;
-bool stop_r = false;
+std::atomic_bool stop_r = false;
 void stop_receive()
 {
     stop_r = false;
-    char i;
+    int i;
     std::cin >> i;
-    std::lock_guard<std::mutex> lg(m);
     stop_r = true;
 }
 int main(int argc, char *argv[])
@@ -40,6 +38,7 @@ int main(int argc, char *argv[])
         if (key == 0)
         {
             GREEN_INFO(false, "receive:\n");
+            stop_r = false;
             std::thread stop_handle = std::thread(stop_receive);
             stop_handle.detach();
             while (!stop_r)
@@ -47,7 +46,7 @@ int main(int argc, char *argv[])
 
                 auto f = sp.get_oneFrame();
                 if (!f.ptr)
-                    break;
+                    continue;
 
                 switch (sp.judge_frame_type(f))
                 {
