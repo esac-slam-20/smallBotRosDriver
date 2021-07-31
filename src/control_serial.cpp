@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
                 }
                 for (int i = 0; i < f.len; i++)
                     YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-                std::cout << std::endl;
+                std::cout << std::dec << std::endl;
                 if (sp.judge_frame_type(f) == serial_protocol::CMD::get_odom)
                 {
                     int32_t o1, o2, o3, o4;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
             auto f = sp.get_set_speed_frame(sp1, sp2, sp3, sp4);
             for (int i = 0; i < f.len; i++)
                 YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-            std::cout << std::endl;
+            std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
         else if (key == 2)
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
             auto f = sp.get_send_encoder_tick_frame(tick);
             for (int i = 0; i < f.len; i++)
                 YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-            std::cout << std::endl;
+            std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
         else if (key == 3)
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
             auto f = sp.get_send_pid_frame(p, i, d);
             for (int i = 0; i < f.len; i++)
                 YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-            std::cout << std::endl;
+            std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
         else if (key == 4)
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
             auto f = sp.get_send_save_frame();
             for (int i = 0; i < f.len; i++)
                 YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-            std::cout << std::endl;
+            std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
         else if (key == 5)
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             auto f = sp.get_send_ignore_frame();
             for (int i = 0; i < f.len; i++)
                 YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-            std::cout << std::endl;
+            std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
 
