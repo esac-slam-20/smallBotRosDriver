@@ -1,30 +1,28 @@
 #pragma once
+#include <atomic>
 #include <boost/asio.hpp>
+#include <condition_variable>
 
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <thread>
 namespace smallBot
 {
-    /**
-     * @brief Get the bit object i从0开始，越小越低位，一次取八位
-     * 
-     * @tparam i 
-     * @tparam T 
-     * @param s 
-     * @return uint8_t 
-     */
-    template <int i, typename T>
-    static uint8_t get_bit(T s)
-    {
-        return ((*(int *)(&s)) & (0xff << i * 8)) >> (i * 8);
-    }
-    template <int i, typename T>
-    static void set_bit(uint8_t ch, T &dst)
-    {
-        dst |= (0xff << i * 8);
-        dst &= (*(int *)(&ch)) << i * 8;
-    };
     class serial_protocol
     {
     public:
+        template <int i, typename T>
+        static uint8_t get_bit(T s)
+        {
+            return ((*(int *)(&s)) & (0xff << i * 8)) >> (i * 8);
+        }
+        template <int i, typename T>
+        static void set_bit(uint8_t ch, T &dst)
+        {
+            dst |= (0xff << i * 8);
+            dst &= (*(int *)(&ch)) << i * 8;
+        };
         struct CMD
         {
             //发送到的包用的
@@ -48,67 +46,75 @@ namespace smallBot
             inline static const int16_t nothing = UINT16_MAX;
             inline static const int16_t stop = 0x00;
         };
-        /**
-         * @brief Construct a new serial protocol object
-         * 
-         * @param port 串口
-         * @param baud_rate 波特率 
-         */
-        serial_protocol(const std::string &port, const uint &baud_rate);
+        struct frame_data
+        {
+            std::shared_ptr<uint8_t[]> ptr;
+            std::size_t len;
+            uint64_t frame_id;
+            frame_data(std::shared_ptr<uint8_t[]> &_ptr,
+                       std::size_t _len, uint64_t _frame_id) : ptr(_ptr), len(_len), frame_id(_frame_id)
+            {
+            }
+            frame_data() : ptr(nullptr)
+            {
+            }
+        };
 
-        /**
-         * @brief 发送一帧数据，核心实现，所有和发送相关的数据最终都会通过这个实现
-         * 
-         * @param cmd 数据类型，请使用smallBot::serial_protocol::CMD
-         *            这里不使用enum的原因是因为不想再查一次表（enum是int）
-         * @param data 数据地址
-         * @param len 数据长度
-         * @return true 发送成功
-         * @return false 发送失败，失败并不保证说一定不向串口写入东西，可能写一半啥的
-         */
-        bool write_oneFrame(const uint8_t &cmd,
-                            const uint8_t *data,
-                            const uint8_t &len);
+#ifdef DEBUG
+        serial_protocol()
+        {
+        }
+#else
+        serial_protocol(const std::string &port,
+                        const uint &baud_rate,
+                        const uint32_t &timeout_millseconds);
+#endif
+        ~serial_protocol();
 
-        /**
-         * @brief 接收一帧数据，核心实现，所有和接收相关的数据最后都会通过这个实现
-         *        注意，是完整的一帧数据，包括包头和包尾
-         * @param buffer 缓冲区，尽可能大一点，保证不溢出,内部不再申请
-         * @param len 接收到的数据的总长度
-         * @return true 接收成功
-         * @return false 接收失败，可能是丢包之类啥的
-         */
-        bool read_oneFrame(uint8_t *buffer, std::size_t &len);
+        //成功有内容，失败没有内容
+        frame_data get_oneFrame();
+        void set_oneFrame(const frame_data &frame);
 
-        /**
-         * @brief 发送数据
-         * 
-         * @param sp1 轮子1速度 rpm
-         * @param sp2 轮子2速度 rpm
-         * @param sp3 轮子3速度 rpm
-         * @param sp4 轮子4速度 rpm
-         * @return true 成功
-         * @return false 帧错误
-         */
-        bool send_speed(int16_t sp1 = speed::nothing,
-                        int16_t sp2 = speed::nothing,
-                        int16_t sp3 = speed::nothing,
-                        int16_t sp4 = speed::nothing);
-        bool send_encoder_tick(uint16_t tick);
-        bool send_pid(float p, float i, float d);
-        bool send_save();
-        bool send_ignore();
+        frame_data get_set_speed_frame(int16_t sp1 = speed::nothing,
+                                       int16_t sp2 = speed::nothing,
+                                       int16_t sp3 = speed::nothing,
+                                       int16_t sp4 = speed::nothing);
+        frame_data get_send_encoder_tick_frame(uint16_t tick);
+        frame_data get_send_pid_frame(float p, float i, float d);
+        frame_data get_send_save_frame();
+        frame_data get_send_ignore_frame();
 
-        void analysis_encodes(uint8_t *buffer, int32_t &o1, int32_t &o2,
-                              int32_t &o3, int32_t &o4);
-
-        uint8_t recive_type(uint8_t *buffer);
-
-        uint16_t get_crc(const uint8_t &cmd, const uint8_t &len, const uint8_t *data);
+        uint8_t judge_frame_type(const frame_data &f);
+        void get_odom(const frame_data &f, int32_t &o1, int32_t &o2,
+                      int32_t &o3, int32_t &o4);
 
     private:
+#ifndef DEBUG
         boost::asio::io_service ioserv; //这个要先初始化，写在前面
         boost::asio::serial_port serial;
+#endif
         int16_t lsp1, lsp2, lsp3, lsp4;
+        uint32_t timeout_millseconds;
+
+        uint64_t frame_id; //接收到的帧的id,64位必不可能溢出,错误的帧不包括
+
+        std::mutex receive_qLock; //接收队列锁
+        std::mutex send_qLock;    //发送队列锁
+        std::mutex timeout_Lock;  //超时锁
+
+        std::queue<frame_data> receive_q; //接收到的数据
+        std::queue<frame_data> send_q;    //存储待发送的数据
+
+        std::atomic_bool quitFlag;
+        std::thread receive_thread_handle;
+        std::thread sends_thread_handle;
+        std::thread call_me_thread_handle;
+
+        std::condition_variable send_cv;    //这个是队列空和不空的时候用的
+        std::condition_variable timeout_cv; //超时用的
+        std::atomic_uint64_t lastest_ack_id;
+        void receive_thread();
+        void send_thread();
+        void call_me_thread();
     };
 }

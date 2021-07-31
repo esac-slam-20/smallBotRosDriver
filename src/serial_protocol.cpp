@@ -1,73 +1,160 @@
 #include "serial_protocol.h"
 namespace smallBot
 {
-    serial_protocol::serial_protocol(const std::string &port, const uint &baud_rate)
+    const size_t BUFFER_UPPER = 512;
+#ifndef DEBUG
+
+    serial_protocol::serial_protocol(const std::string &port,
+                                     const uint &baud_rate, const uint32_t &timeout_millseconds)
         : ioserv(), serial(ioserv, port),
           lsp1(serial_protocol::speed::stop), lsp2(serial_protocol::speed::stop),
-          lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop)
+          lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop),
+          timeout_millseconds(timeout_millseconds),
+          frame_id(0), quitFlag(false), lastest_ack_id(0)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
         serial.set_option(boost::asio::serial_port::parity());
         serial.set_option(boost::asio::serial_port::stop_bits());
         serial.set_option(boost::asio::serial_port::character_size(8));
+
+        //开启两个线程，一个用来发送，一个用来接收
+        receive_thread_handle = std::thread(std::bind(&serial_protocol::receive_thread, this));
+        sends_thread_handle = std::thread(std::bind(&serial_protocol::send_thread, this));
     }
-    uint16_t serial_protocol::get_crc(const uint8_t &cmd, const uint8_t &len, const uint8_t *data)
+#endif
+
+    uint16_t get_crc(uint8_t buffer[BUFFER_UPPER], int len)
     {
         //TODO
         return 0;
     }
-    bool serial_protocol::write_oneFrame(const uint8_t &cmd,
-                                         const uint8_t *data,
-                                         const uint8_t &len)
+    bool check_frame_complete(uint8_t buffer[BUFFER_UPPER], size_t len)
     {
-        uint8_t head[3] = {serial_protocol::CMD::head, cmd, len};
-        uint16_t crc = get_crc(cmd, len, data);
-        uint8_t tail[3] = {get_bit<0>(crc), get_bit<1>(crc),
-                           serial_protocol::CMD::tail};
-        return boost::asio::write(serial, boost::asio::buffer(head, 3)) &&
-               boost::asio::write(serial, boost::asio::buffer(data, len)) &&
-               boost::asio::write(serial, boost::asio::buffer(tail, 3));
-    }
+        //如果len<6,直接不完整
+        if (len < 6)
+            return false;
+        uint8_t frame_len = buffer[1];
+        //长度不够一帧，不完整
+        if (frame_len + 6 != len)
+            return false;
 
-    bool serial_protocol::read_oneFrame(uint8_t *buffer, std::size_t &len)
-    {
-        std::size_t receiveDataLen = 0;
-        //头
-        do
-        {
-            std::size_t subLen = serial.read_some(
-                boost::asio::buffer(buffer + receiveDataLen,
-                                    2 - receiveDataLen));
-            receiveDataLen += subLen;
-            if (receiveDataLen > 2)
-                return false;
-        } while (receiveDataLen < 2);
-        //data+尾
-        std::uint16_t dataLen = buffer[1] + 3; //这里用u16是因为data最大长度255 +3可能溢出
-        receiveDataLen = 0;
-        do
-        {
-            std::size_t subLen = serial.read_some(
-                boost::asio::buffer(2 + buffer + receiveDataLen,
-                                    dataLen - receiveDataLen));
-            receiveDataLen += subLen;
-            if (receiveDataLen > dataLen)
-                return false;
-        } while (receiveDataLen < dataLen);
-        uint16_t crc;
-        set_bit<0>(buffer[3 + buffer[2]], crc);
-        set_bit<1>(buffer[3 + buffer[2] + 1], crc);
-        len = buffer[2] + 6;
-        if (get_crc(buffer[1], buffer[2], buffer + 3) != crc)
+        uint16_t crc = get_crc(buffer, frame_len + 3);
+
+        if (buffer[0] != serial_protocol::CMD::head ||
+            buffer[frame_len + 5] != serial_protocol::CMD::tail ||
+            serial_protocol::get_bit<0>(crc) != buffer[frame_len + 3] ||
+            serial_protocol::get_bit<1>(crc) != buffer[frame_len + 4])
             return false;
         return true;
     }
+    //接收线程的使命，每次接收一帧，然后存入队列
+    //如果帧不完整，则一直丢掉数据
+#ifndef DEBUG
 
-    bool serial_protocol::send_speed(int16_t sp1,
-                                     int16_t sp2,
-                                     int16_t sp3,
-                                     int16_t sp4)
+    void serial_protocol::receive_thread()
+    {
+        //这里的逻辑是
+        //如果读到了head符号，则检测一下完整性，如果完整即存入队列
+        //如果head符号不出现，就一直丢弃数据
+        //这里一次读一个好处理一点，不然很麻烦
+        while (!quitFlag)
+        {
+            std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
+            std::size_t len = 0;
+            len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1)); //1个1个读，好处理一点
+            if (buffer[0] != serial_protocol::CMD::head)                         //第一个字节就错了，直接过了它
+                continue;
+            bool complete_flag = false;
+            do
+            {
+                len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
+                if (len == BUFFER_UPPER)
+                    break;
+            } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
+            if (!complete_flag) //不完整，丢弃这些数据
+                continue;
+            //数据完整，存起来
+            {
+                std::lock_guard<std::mutex> lg(receive_qLock);
+                if (buffer[1] == CMD::get_ack)
+                {
+                    lastest_ack_id = frame_id + 1;
+                    std::lock_guard<std::mutex> tL(timeout_Lock);
+                    timeout_cv.notify_one(); //唤醒
+                }
+                receive_q.push(frame_data(buffer, len, frame_id++));
+            }
+        }
+    }
+#endif
+    serial_protocol::frame_data serial_protocol::get_oneFrame()
+    {
+        std::lock_guard<std::mutex> lg(receive_qLock);
+        if (receive_q.empty())
+            return frame_data();
+        frame_data f = receive_q.front();
+        receive_q.pop();
+        return f;
+    }
+#ifndef DEBUG
+
+    void serial_protocol::send_thread()
+    {
+        while (!quitFlag)
+        {
+            frame_data f;
+            {
+                std::unique_lock<std::mutex> ul(send_qLock);
+                if (send_q.empty())
+                    send_cv.wait(ul); //队列为空，则挂起
+                f = send_q.front();
+                send_q.pop();
+            }
+            uint64_t id = lastest_ack_id;
+            do
+            {
+
+                boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
+                                                               f.len));
+                std::unique_lock<std::mutex> tL(timeout_Lock);
+                call_me_thread_handle = std::thread(std::bind(&serial_protocol::call_me_thread, this));
+                timeout_cv.wait(tL);
+                //被唤醒之后，判断一下根据id判断是否收到了ack，收到就ok，没收到就重发
+            } while (lastest_ack_id <= id);
+        }
+    }
+#endif
+    void serial_protocol::set_oneFrame(const frame_data &frame)
+    {
+        std::lock_guard<std::mutex> lg(send_qLock);
+        send_q.push(frame);
+    }
+
+    void serial_protocol::call_me_thread()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
+        //时间到了唤醒它
+        std::lock_guard<std::mutex> tL(timeout_Lock);
+
+        timeout_cv.notify_one();
+    }
+    serial_protocol::~serial_protocol()
+    {
+#ifndef DEBUG
+        quitFlag = true;
+        call_me_thread_handle.join();
+        sends_thread_handle.join();
+        receive_thread_handle.join();
+
+        ioserv.run();
+#endif
+    }
+
+    serial_protocol::frame_data serial_protocol::get_set_speed_frame(int16_t sp1,
+                                                                     int16_t sp2,
+                                                                     int16_t sp3,
+                                                                     int16_t sp4)
     {
         if (sp1 == speed::nothing)
             sp1 = lsp1;
@@ -77,87 +164,134 @@ namespace smallBot
             sp3 = lsp3;
         if (sp4 == speed::nothing)
             sp4 = lsp4;
-        uint8_t data[8];
-        data[0] = get_bit<0>(sp1);
-        data[1] = get_bit<1>(sp1);
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[14]);
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_speed;
+        buffer[2] = 8;
 
-        data[2] = get_bit<0>(sp2);
-        data[3] = get_bit<1>(sp2);
+        buffer[3] = get_bit<0>(sp1);
+        buffer[4] = get_bit<1>(sp1);
 
-        data[4] = get_bit<0>(sp3);
-        data[5] = get_bit<1>(sp3);
+        buffer[5] = get_bit<0>(sp2);
+        buffer[6] = get_bit<1>(sp2);
 
-        data[6] = get_bit<0>(sp4);
-        data[7] = get_bit<1>(sp4);
+        buffer[7] = get_bit<0>(sp3);
+        buffer[8] = get_bit<1>(sp3);
+
+        buffer[9] = get_bit<0>(sp4);
+        buffer[10] = get_bit<1>(sp4);
+
+        uint16_t crc = get_crc(buffer.get(), 11);
+        buffer[11] = get_bit<0>(crc);
+        buffer[12] = get_bit<1>(crc);
+        buffer[13] = CMD::tail;
+
         lsp1 = sp1;
         lsp2 = sp2;
         lsp3 = sp3;
         lsp4 = sp4;
-        return write_oneFrame(CMD::set_speed, data, 8);
+        return frame_data(buffer, 14, 0);
     }
-
-    void serial_protocol::analysis_encodes(uint8_t *data, int32_t &o1, int32_t &o2,
-                                           int32_t &o3, int32_t &o4)
+    serial_protocol::frame_data serial_protocol::get_send_encoder_tick_frame(uint16_t tick)
     {
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[8]);
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_encode;
+        buffer[2] = 2;
 
-        set_bit<0>(data[3 + 0], o1);
-        set_bit<1>(data[3 + 1], o1);
-        set_bit<2>(data[3 + 2], o1);
-        set_bit<3>(data[3 + 3], o1);
+        buffer[3] = get_bit<0>(tick);
+        buffer[4] = get_bit<1>(tick);
 
-        set_bit<0>(data[3 + 4], o2);
-        set_bit<1>(data[3 + 5], o2);
-        set_bit<2>(data[3 + 6], o2);
-        set_bit<3>(data[3 + 7], o2);
-
-        set_bit<0>(data[3 + 8], o3);
-        set_bit<1>(data[3 + 9], o3);
-        set_bit<2>(data[3 + 10], o3);
-        set_bit<3>(data[3 + 11], o3);
-
-        set_bit<0>(data[3 + 12], o4);
-        set_bit<1>(data[3 + 13], o4);
-        set_bit<2>(data[3 + 14], o4);
-        set_bit<3>(data[3 + 15], o4);
+        uint16_t crc = get_crc(buffer.get(), 5);
+        buffer[5] = get_bit<0>(crc);
+        buffer[6] = get_bit<1>(crc);
+        buffer[7] = CMD::tail;
+        return frame_data(buffer, 8, 0);
     }
-
-    bool serial_protocol::send_encoder_tick(uint16_t tick)
+    serial_protocol::frame_data serial_protocol::get_send_pid_frame(
+        float p, float i, float d)
     {
-        uint8_t data[2];
-        data[0] = get_bit<0>(tick);
-        data[1] = get_bit<1>(tick);
-        return write_oneFrame(CMD::set_encode, data, 2);
-    }
-    bool serial_protocol::send_pid(float p, float i, float d)
-    {
-        uint8_t data[12];
-        data[0] = get_bit<0>(p);
-        data[1] = get_bit<1>(p);
-        data[2] = get_bit<2>(p);
-        data[3] = get_bit<3>(p);
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[18]);
 
-        data[4] = get_bit<0>(i);
-        data[5] = get_bit<1>(i);
-        data[6] = get_bit<2>(i);
-        data[7] = get_bit<3>(i);
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_pid;
+        buffer[2] = 12;
 
-        data[8] = get_bit<0>(d);
-        data[9] = get_bit<1>(d);
-        data[10] = get_bit<2>(d);
-        data[11] = get_bit<3>(d);
-        return write_oneFrame(CMD::set_pid, data, 12);
+        buffer[3] = get_bit<0>(p);
+        buffer[4] = get_bit<1>(p);
+        buffer[5] = get_bit<2>(p);
+        buffer[6] = get_bit<3>(p);
+
+        buffer[7] = get_bit<0>(i);
+        buffer[8] = get_bit<1>(i);
+        buffer[9] = get_bit<2>(i);
+        buffer[10] = get_bit<3>(i);
+
+        buffer[11] = get_bit<0>(d);
+        buffer[12] = get_bit<1>(d);
+        buffer[13] = get_bit<2>(d);
+        buffer[14] = get_bit<3>(d);
+
+        uint16_t crc = get_crc(buffer.get(), 15);
+        buffer[15] = get_bit<0>(crc);
+        buffer[16] = get_bit<1>(crc);
+        buffer[17] = CMD::tail;
+        return frame_data(buffer, 18, 0);
     }
-    bool serial_protocol::send_save()
+    serial_protocol::frame_data serial_protocol::get_send_save_frame()
     {
-        return write_oneFrame(CMD::set_save, NULL, 0);
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[6]);
+
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_save;
+        buffer[2] = 0;
+
+        uint16_t crc = get_crc(buffer.get(), 3);
+        buffer[3] = get_bit<0>(crc);
+        buffer[4] = get_bit<1>(crc);
+        buffer[5] = CMD::tail;
+        return frame_data(buffer, 6, 0);
     }
-    bool serial_protocol::send_ignore()
+    serial_protocol::frame_data serial_protocol::get_send_ignore_frame()
     {
-        return write_oneFrame(CMD::set_ignore, NULL, 0);
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[6]);
+
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_ignore;
+        buffer[2] = 0;
+
+        uint16_t crc = get_crc(buffer.get(), 3);
+        buffer[3] = get_bit<0>(crc);
+        buffer[4] = get_bit<1>(crc);
+        buffer[5] = CMD::tail;
+        return frame_data(buffer, 6, 0);
+    }
+    uint8_t serial_protocol::judge_frame_type(const frame_data &f)
+    {
+        return f.ptr[1];
+    }
+    void serial_protocol::get_odom(const frame_data &f, int32_t &o1, int32_t &o2,
+                                   int32_t &o3, int32_t &o4)
+    {
+        set_bit<0>(f.ptr[3 + 0], o1);
+        set_bit<1>(f.ptr[3 + 1], o1);
+        set_bit<2>(f.ptr[3 + 2], o1);
+        set_bit<3>(f.ptr[3 + 3], o1);
+
+        set_bit<0>(f.ptr[3 + 4], o2);
+        set_bit<1>(f.ptr[3 + 5], o2);
+        set_bit<2>(f.ptr[3 + 6], o2);
+        set_bit<3>(f.ptr[3 + 7], o2);
+
+        set_bit<0>(f.ptr[3 + 8], o3);
+        set_bit<1>(f.ptr[3 + 9], o3);
+        set_bit<2>(f.ptr[3 + 10], o3);
+        set_bit<3>(f.ptr[3 + 11], o3);
+
+        set_bit<0>(f.ptr[3 + 12], o4);
+        set_bit<1>(f.ptr[3 + 13], o4);
+        set_bit<2>(f.ptr[3 + 14], o4);
+        set_bit<3>(f.ptr[3 + 15], o4);
     }
 
-    uint8_t serial_protocol::recive_type(uint8_t *buffer)
-    {
-        return buffer[0];
-    }
 }
