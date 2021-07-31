@@ -21,7 +21,7 @@ namespace smallBot
         static void set_bit(uint8_t ch, T &dst)
         {
             dst |= (0xff << i * 8);
-            dst &= (*(int *)(&ch)) << i * 8;
+            dst &= (T(ch) << i * 8) | (~(0xff << i * 8));
         };
         struct CMD
         {
@@ -67,7 +67,8 @@ namespace smallBot
 #else
         serial_protocol(const std::string &port,
                         const uint &baud_rate,
-                        const uint32_t &timeout_millseconds);
+                        const uint32_t &timeout_millseconds,
+                        const std::size_t &qs);
 #endif
         ~serial_protocol();
 
@@ -113,6 +114,8 @@ namespace smallBot
         std::condition_variable send_cv;    //这个是队列空和不空的时候用的
         std::condition_variable timeout_cv; //超时用的
         std::atomic_uint64_t lastest_ack_id;
+
+        std::size_t r_q_size;
         void receive_thread();
         void send_thread();
         void call_me_thread();

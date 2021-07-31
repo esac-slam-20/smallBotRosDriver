@@ -1,6 +1,16 @@
 #include "serial_protocol.h"
 #include "timerAndColor/color.h"
 using namespace smallBot;
+std::mutex m;
+bool stop_r = false;
+void stop_receive()
+{
+    stop_r = false;
+    char i;
+    std::cin >> i;
+    std::lock_guard<std::mutex> lg(m);
+    stop_r = true;
+}
 int main(int argc, char *argv[])
 {
     if (argc != 3)
@@ -10,7 +20,7 @@ int main(int argc, char *argv[])
     }
     int key;
 #ifndef DEBUG
-    serial_protocol sp(argv[1], std::atoi(argv[2]), 2);
+    serial_protocol sp(argv[1], std::atoi(argv[2]), 2, 1000);
 #else
     serial_protocol sp;
 #endif
@@ -18,7 +28,7 @@ int main(int argc, char *argv[])
     {
         GREEN_INFO(true,
                    "=========================\n\
-0.wait receive\n\
+0.wait receive.when you receive,input any key to stop\n\
 1.set speed [sp1 sp2 sp3 sp4]\n\
 2.set encode [tick]\n\
 3.set pid [p i d]\n\
@@ -30,7 +40,9 @@ int main(int argc, char *argv[])
         if (key == 0)
         {
             GREEN_INFO(false, "receive:\n");
-            while (1)
+            std::thread stop_handle = std::thread(stop_receive);
+            stop_handle.detach();
+            while (!stop_r)
             {
 
                 auto f = sp.get_oneFrame();
@@ -63,6 +75,8 @@ int main(int argc, char *argv[])
                                            << o1 << " " << o2 << " " << o3 << " " << o4 << std::endl);
                 }
             }
+            if (stop_handle.joinable())
+                stop_handle.join();
         }
         else if (key == 1)
         {

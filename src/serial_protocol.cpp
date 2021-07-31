@@ -7,12 +7,13 @@ namespace smallBot
 #ifndef DEBUG
 
     serial_protocol::serial_protocol(const std::string &port,
-                                     const uint &baud_rate, const uint32_t &timeout_millseconds)
+                                     const uint &baud_rate, const uint32_t &timeout_millseconds,
+                                     const std::size_t &qs)
         : ioserv(), serial(ioserv, port),
           lsp1(serial_protocol::speed::stop), lsp2(serial_protocol::speed::stop),
           lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop),
           timeout_millseconds(timeout_millseconds),
-          frame_id(0), quitFlag(false), lastest_ack_id(0)
+          frame_id(0), quitFlag(false), lastest_ack_id(0), r_q_size(qs)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -93,6 +94,8 @@ namespace smallBot
                     timeout_cv.notify_one(); //唤醒
                 }
                 receive_q.push(frame_data(buffer, len, frame_id++));
+                if (receive_q.size() == r_q_size)
+                    receive_q.pop();
             }
         }
     }
@@ -104,6 +107,7 @@ namespace smallBot
             return frame_data();
         frame_data f = receive_q.front();
         receive_q.pop();
+
         return f;
     }
 #ifndef DEBUG
