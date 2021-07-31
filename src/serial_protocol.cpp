@@ -79,7 +79,7 @@ namespace smallBot
             do
             {
                 len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
-                if (len == BUFFER_UPPER)
+                if (len == BUFFER_UPPER || quitFlag)
                     break;
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
             if (!complete_flag) //不完整，丢弃这些数据
@@ -164,7 +164,6 @@ namespace smallBot
             sends_thread_handle.join();
         if (receive_thread_handle.joinable())
             receive_thread_handle.join();
-
         ioserv.run();
 #endif
     }

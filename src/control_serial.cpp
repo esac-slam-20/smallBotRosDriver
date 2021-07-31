@@ -26,12 +26,12 @@ int main(int argc, char *argv[])
     {
         GREEN_INFO(true,
                    "=========================\n\
-0.wait receive.when you receive,input any key to stop\n\
+0.wait receive.when you receive,input any integer to stop\n\
 1.set speed [sp1 sp2 sp3 sp4]\n\
 2.set encode [tick]\n\
 3.set pid [p i d]\n\
 4.set save\n\
-5.set ignroe\n\
+5.set ignore\n\
 6.quit\n\
 =========================\n");
         std::cin >> key;
