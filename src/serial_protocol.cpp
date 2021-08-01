@@ -135,7 +135,7 @@ namespace smallBot
                 call_me_thread_handle.detach();
                 timeout_cv.wait(tL);
                 //被唤醒之后，判断一下根据id判断是否收到了ack，收到就ok，没收到就重发
-            } while (lastest_ack_id <= id);
+            } while (lastest_ack_id <= id && !quitFlag);
         }
     }
 #endif
