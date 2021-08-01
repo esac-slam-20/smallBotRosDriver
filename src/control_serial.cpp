@@ -1,7 +1,7 @@
 #include "serial_protocol.h"
 #include "timerAndColor/color.h"
 using namespace smallBot;
-std::atomic_bool stop_r = false;
+std::atomic_bool stop_r;
 void stop_receive()
 {
     stop_r = false;
@@ -11,17 +11,15 @@ void stop_receive()
 }
 int main(int argc, char *argv[])
 {
+    stop_r = false;
     if (argc != 3)
     {
         RED_INFO(true, "arg error.usage: ./control_serial /port baud_rate\n");
         exit(-1);
     }
     int key;
-#ifndef DEBUG
     serial_protocol sp(argv[1], std::atoi(argv[2]), 2, 1000);
-#else
-    serial_protocol sp;
-#endif
+
     do
     {
         GREEN_INFO(true,

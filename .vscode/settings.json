@@ -66,5 +66,8 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "C_Cpp.default.defines": [
+        "DEBUG"
+    ]
 }

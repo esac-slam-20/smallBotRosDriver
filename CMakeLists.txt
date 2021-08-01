@@ -10,7 +10,7 @@ SET(CMAKE_BUILD_TYPE "Release")
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED)
 
-#add_definitions(-DDEBUG) #单纯测试数据，关闭所有串口相关
+#add_definitions(-DDEBUG) #会添加一些调试信息
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
