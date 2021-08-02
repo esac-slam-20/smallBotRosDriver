@@ -2,7 +2,7 @@
 这是一个用来运行在ros noetic的ros驱动库，主要服务于[smallBot](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot)
 。
 ## 主要功能
-1. baseDriver:接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)转化数据，并且通过串口发送到下位机。
+0. baseDriver:接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)转化数据，并且通过串口发送到下位机。
 2. odomDriver:根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)从下位机读取数据，然后转化到TF数据和[nav_msgs/Odometry](http://docs.ros.org/en/kinetic/api/nav_msgs/html/msg/Odometry.html)话题。
 ## 依赖库
 1. 各种ros库
@@ -23,5 +23,6 @@ catkin_make
 ```
 ## 运行方式
 ```
-rosrun smallBotRosDriver control_serial port baud_rate
+rosrun smallBotRosDriver control_serial port baud_rate #启动控制台版的串口调试助手
+roslaunch smallBotRosDriver driver.launch #启动ros节点
 ```
