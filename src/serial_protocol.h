@@ -91,10 +91,10 @@ namespace smallBot
 
         uint64_t frame_id; //接收到的帧的id,64位必不可能溢出,错误的帧不包括
 
-        std::mutex receive_qLock;   //接收队列锁
-        std::mutex send_qLock;      //发送队列锁
-        std::mutex timeout_Lock;    //超时锁
-        std::mutex async_read_lock; //异步读锁
+        std::mutex receive_qLock; //接收队列锁
+        std::mutex send_qLock;    //发送队列锁
+        std::mutex timeout_Lock;  //超时锁
+        //std::mutex async_read_lock; //异步读锁
 
         std::queue<frame_data> receive_q; //接收到的数据
         std::queue<frame_data> send_q;    //存储待发送的数据
@@ -104,8 +104,8 @@ namespace smallBot
         std::thread sends_thread_handle;
         std::thread call_me_thread_handle;
 
-        std::condition_variable send_cv;    //这个是队列空和不空的时候用的
-        std::condition_variable read_cv;    //异步读条件变量
+        std::condition_variable send_cv; //这个是队列空和不空的时候用的
+        //std::condition_variable read_cv;    //异步读条件变量
         std::condition_variable timeout_cv; //超时用的
         std::atomic_uint64_t lastest_ack_id;
 

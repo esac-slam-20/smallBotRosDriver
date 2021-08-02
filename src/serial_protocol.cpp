@@ -44,6 +44,8 @@ namespace smallBot
         //开启两个线程，一个用来发送，一个用来接收
         receive_thread_handle = std::thread(std::bind(&serial_protocol::receive_thread, this));
         sends_thread_handle = std::thread(std::bind(&serial_protocol::send_thread, this));
+
+        ioserv.run();
     }
 
     uint16_t get_crc(uint8_t buffer[BUFFER_UPPER], int len)
@@ -73,18 +75,12 @@ namespace smallBot
     }
 
     void async_read_handler(
-        std::mutex &m,
-        std::condition_variable &cv,
         std::size_t &len,
         const boost::system::error_code &error, // Result of operation.
         std::size_t bytes_transferred           // Number of bytes read.
     )
     {
-        DEBUG_YELLOW_INFO(false, "read something" << len << std::endl);
-        std::lock_guard<std::mutex> lg(m);
         len += bytes_transferred;
-        cv.notify_one(); //唤醒罢了
-        DEBUG_YELLOW_INFO(false, "read something:now len=" << len << std::endl);
     }
     //接收线程的使命，每次接收一帧，然后存入队列
     //如果帧不完整，则一直丢掉数据
@@ -103,41 +99,33 @@ namespace smallBot
         {
             std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
             std::size_t len = 0;
-            // {
-            //     std::unique_lock<std::mutex> ul(async_read_lock);
-            //     serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
-            //                            std::bind(async_read_handler, std::ref(async_read_lock),
-            //                                      std::ref(read_cv),
-            //                                      std::ref(len), std::placeholders::_1, std::placeholders::_2));
-            //     DEBUG_YELLOW_INFO(false, "head read_cv wait:now len = " << len << std::endl);
-            //     read_cv.wait(ul);
-            //     DEBUG_YELLOW_INFO(false, "head read_cv wake up:now len = " << len << std::endl);
-            // }
-            // if (quitFlag)
-            //     break;
-            len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1)); //1个1个读，好处理一点
+
+            serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+                                   std::bind(async_read_handler,
+                                             std::ref(len),
+                                             std::placeholders::_1, std::placeholders::_2));
+            ioserv.reset();
+            ioserv.run();
+            if (quitFlag)
+                break;
+            //len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1)); //1个1个读，好处理一点
             DEBUG_YELLOW_INFO(false, "i got something\n");
             if (buffer[0] != serial_protocol::CMD::head) //第一个字节就错了，直接过了它
                 continue;
             bool complete_flag = false;
             do
             {
-                // {
-                //     std::unique_lock<std::mutex> ul(async_read_lock);
-                //     serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
-                //                            boost::bind(async_read_handler, boost::ref(async_read_lock),
-                //                                        boost::ref(read_cv),
-                //                                        boost::ref(len),
-                //                                        boost::asio::placeholders::error,
-                //                                        boost::asio::placeholders::bytes_transferred));
-                //     DEBUG_YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
-                //     read_cv.wait(ul);
-                //     DEBUG_YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
-                // }
-                // if (quitFlag)
-                //     break;
+                serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+                                       std::bind(async_read_handler,
+                                                 std::ref(len),
+                                                 std::placeholders::_1, std::placeholders::_2));
+                ioserv.reset();
+                ioserv.run();
 
-                len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
+                if (quitFlag)
+                    break;
+
+                //len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
                 if (len == BUFFER_UPPER || quitFlag)
                     break;
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
@@ -243,7 +231,6 @@ namespace smallBot
         quitFlag = true;
         send_cv.notify_one();
         serial.cancel();
-        read_cv.notify_one();
         if (call_me_thread_handle.joinable())
             call_me_thread_handle.join();
         if (sends_thread_handle.joinable())
