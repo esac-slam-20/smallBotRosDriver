@@ -76,6 +76,9 @@ namespace smallBot
         std::lock_guard<std::mutex> lg(m);
         len += bytes_transferred;
         cv.notify_one(); //唤醒罢了
+#ifdef DEBUG
+        YELLOW_INFO(false, "read something:now len=" << len << std::endl);
+#endif
     }
     //接收线程的使命，每次接收一帧，然后存入队列
     //如果帧不完整，则一直丢掉数据
@@ -101,7 +104,13 @@ namespace smallBot
                                        std::bind(async_read_handler, std::ref(async_read_lock),
                                                  std::ref(read_cv),
                                                  std::ref(len), std::placeholders::_1, std::placeholders::_2));
+#ifdef DEBUG
+                YELLOW_INFO(false, "head read_cv wait:now len=" << len << std::endl);
+#endif
                 read_cv.wait(ul);
+#ifdef DEBUG
+                YELLOW_INFO(false, "head read_cv wake up:now len=" << len << std::endl);
+#endif
             }
             if (quitFlag)
                 break;
@@ -117,7 +126,13 @@ namespace smallBot
                                            std::bind(async_read_handler, std::ref(async_read_lock),
                                                      std::ref(read_cv),
                                                      std::ref(len), std::placeholders::_1, std::placeholders::_2));
+#ifdef DEBUG
+                    YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
+#endif
                     read_cv.wait(ul);
+#ifdef DEBUG
+                    YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
+#endif
                 }
                 if (quitFlag)
                     break;
@@ -127,7 +142,15 @@ namespace smallBot
                     break;
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
             if (!complete_flag) //不完整，丢弃这些数据
+            {
+#ifdef DEBUG
+                YELLOW_INFO(false, "check_frame_complete failed" << std::endl);
+#endif
                 continue;
+            }
+#ifdef DEBUG
+            GREEN_INFO(true, "check_frame_complete successfully" << std::endl);
+#endif
             //数据完整，存起来
             {
                 std::lock_guard<std::mutex> lg(receive_qLock);
