@@ -8,7 +8,11 @@ SET(CMAKE_BUILD_TYPE "Release")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED 
+  roscpp 
+  geometry_msgs
+  tf
+  )
 
 #add_definitions(-DDEBUG) #会添加一些调试信息
 
@@ -119,6 +123,7 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
  ${Boost_INCLUDE_DIRS}
  src
+ /usr/include/eigen3
 )
 
 ## Declare a C++ library
@@ -137,14 +142,28 @@ include_directories(
 add_library(serial_protocol
   src/serial_protocol.cpp
 )
+add_library(driver_base
+  src/driver_base.cpp)
+
 target_link_libraries(serial_protocol
    ${Boost_LIBRARIES}
    pthread
 )
+target_link_libraries(driver_base
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+  serial_protocol
+)
 
 add_executable(control_serial src/control_serial.cpp)
+add_executable(driver_node src/driver_node.cpp)
+
 target_link_libraries(control_serial
   serial_protocol
+)
+target_link_libraries(driver_node
+  serial_protocol
+  driver_base
 )
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
