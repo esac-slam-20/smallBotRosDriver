@@ -14,7 +14,7 @@ find_package(catkin REQUIRED
   tf
   )
 
-add_definitions(-DDEBUG) #会添加一些调试信息
+#add_definitions(-DDEBUG) #会添加一些调试信息
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
@@ -144,7 +144,8 @@ add_library(serial_protocol
 )
 add_library(driver_base
   src/driver_base.cpp)
-
+add_library(driver_odom
+  src/driver_odom.cpp)
 target_link_libraries(serial_protocol
    ${Boost_LIBRARIES}
    pthread
@@ -155,6 +156,13 @@ target_link_libraries(driver_base
   serial_protocol
 )
 
+target_link_libraries(driver_odom
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+  serial_protocol
+)
+
+
 add_executable(control_serial src/control_serial.cpp)
 add_executable(driver_node src/driver_node.cpp)
 
@@ -164,6 +172,7 @@ target_link_libraries(control_serial
 target_link_libraries(driver_node
   serial_protocol
   driver_base
+  driver_odom
 )
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

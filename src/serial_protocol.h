@@ -60,10 +60,13 @@ namespace smallBot
             }
         };
 
-        serial_protocol(const std::string &port,
-                        const uint &baud_rate,
-                        const uint32_t &timeout_millseconds,
-                        const std::size_t &qs);
+        serial_protocol(
+            const std::string &port,
+            const uint &baud_rate,
+            const uint32_t &timeout_millseconds,
+            const std::size_t &qs);
+        void setCallback(std::function<void(const frame_data &)> cb);
+
         ~serial_protocol();
 
         //成功有内容，失败没有内容
@@ -113,5 +116,9 @@ namespace smallBot
         void receive_thread();
         void send_thread();
         void call_me_thread();
+
+        //回调函数
+        bool hasCallback;
+        std::function<void(const frame_data &)> receive_callback;
     };
 }

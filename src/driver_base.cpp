@@ -23,11 +23,11 @@ namespace smallBot
                              const float &L,
                              const float &wheelR) : sp_ptr(sp_ptr), reductionRate(reductionRate), L(L), wheelR(wheelR)
     {
-        magicMatrix << cosf(-90.0 / 180.0 * M_PI), sinf(-90.0 / 180.0 * M_PI), L; //1
-        cosf(30.0 / 180.0 * M_PI), sinf(30.0 / 180.0 * M_PI), L,                  //2
-            cosf(150.0 / 180.0 * M_PI), sinf(150.0 / 180.0 * M_PI), L,            //3
-            cmd_sub = n.subscribe<geometry_msgs::Twist>(cmdName,
-                                                        1, std::bind(&driver_base::cmdCallback, this, std::placeholders::_1));
+        magicMatrix << cosf(-90.0 / 180.0 * M_PI), sinf(-90.0 / 180.0 * M_PI), L, //1
+            cosf(30.0 / 180.0 * M_PI), sinf(30.0 / 180.0 * M_PI), L,              //2
+            cosf(150.0 / 180.0 * M_PI), sinf(150.0 / 180.0 * M_PI), L;            //3
+        cmd_sub = n.subscribe<geometry_msgs::Twist>(cmdName,
+                                                    1, std::bind(&driver_base::cmdCallback, this, std::placeholders::_1));
     }
     void driver_base::cmdCallback(const geometry_msgs::Twist::ConstPtr &msg) //收到一次，发一次
     {

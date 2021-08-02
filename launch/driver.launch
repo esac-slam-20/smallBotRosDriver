@@ -9,5 +9,13 @@
     <param name="reductionRate"  type="double" value="0.033"/>
     <param name="L"  type="double" value="0.015"/>
     <param name="wheelR"  type="double" value="0.029"/>
+
+    <param name="tpr"  type="double" value="1"/>
+    <param name="odom_name"  type="str" value="/odom"/>
+    <param name="odom_frame"  type="str" value="/odom"/>
+    <param name="child_frame"  type="str" value="/base_footprint"/>
+    <param name="sendTF"  type="bool" value="true"/>
+    <param name="sendOdom"  type="bool" value="true"/>
+
   </node>
 </launch>

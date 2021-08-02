@@ -33,7 +33,7 @@ namespace smallBot
           lsp1(serial_protocol::speed::stop), lsp2(serial_protocol::speed::stop),
           lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop),
           timeout_millseconds(timeout_millseconds),
-          frame_id(0), quitFlag(false), lastest_ack_id(0), r_q_size(qs)
+          frame_id(0), quitFlag(false), lastest_ack_id(0), r_q_size(qs), hasCallback(false)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -46,6 +46,13 @@ namespace smallBot
         sends_thread_handle = std::thread(std::bind(&serial_protocol::send_thread, this));
 
         ioserv.run();
+    }
+
+    void serial_protocol::setCallback(std::function<void(const frame_data &)> cb)
+    {
+        std::lock_guard<std::mutex> lg(receive_qLock);
+        hasCallback = true;
+        receive_callback = cb;
     }
 
     uint16_t get_crc(uint8_t buffer[BUFFER_UPPER], int len)
@@ -145,6 +152,8 @@ namespace smallBot
                     std::lock_guard<std::mutex> tL(timeout_Lock);
                     timeout_cv.notify_one(); //唤醒
                 }
+                if (hasCallback)
+                    receive_callback(frame_data(buffer, len, frame_id + 1));
                 receive_q.push(frame_data(buffer, len, frame_id++));
                 if (receive_q.size() == r_q_size)
                     receive_q.pop();
