@@ -7,18 +7,26 @@
 #ifdef DEBUG
 std::mutex d_info_mutex;
 #endif
+
+#ifdef DEBUG
+#define DEBUG_YELLOW_INFO(B, ...) YELLOW_INFO(B, __VA_ARGS__)
+#define DEBUG_BLOCK(...) __VA_ARGS__
+#else
+#define DEBUG_YELLOW_INFO(B, ...)
+#define DEBUG_BLOCK(...)
+#endif
+
 namespace smallBot
 {
     const size_t BUFFER_UPPER = 512;
-#ifdef DEBUG
-    void printHex(const serial_protocol::frame_data &f)
-    {
-        std::lock_guard<std::mutex> lg(d_info_mutex);
-        for (int i = 0; i < f.len; ++i)
-            YELLOW_INFO(false, std::hex << (uint32_t)f.ptr[i] << " ");
-        std::cout << std::dec << std::endl;
-    }
-#endif
+    DEBUG_BLOCK(
+        void printHex(const serial_protocol::frame_data &f)
+        {
+            std::lock_guard<std::mutex> lg(d_info_mutex);
+            for (int i = 0; i < f.len; ++i)
+                DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)f.ptr[i] << " ");
+            std::cout << std::dec << std::endl;
+        });
     serial_protocol::serial_protocol(const std::string &port,
                                      const uint &baud_rate, const uint32_t &timeout_millseconds,
                                      const std::size_t &qs)
@@ -73,27 +81,25 @@ namespace smallBot
         std::size_t bytes_transferred           // Number of bytes read.
     )
     {
+        DEBUG_YELLOW_INFO(false, "read something" << len << std::endl);
         std::lock_guard<std::mutex> lg(m);
         len += bytes_transferred;
         cv.notify_one(); //唤醒罢了
-#ifdef DEBUG
-        YELLOW_INFO(false, "read something:now len=" << len << std::endl);
-#endif
+        DEBUG_YELLOW_INFO(false, "read something:now len=" << len << std::endl);
     }
     //接收线程的使命，每次接收一帧，然后存入队列
     //如果帧不完整，则一直丢掉数据
     void serial_protocol::receive_thread()
     {
-//这里的逻辑是
-//如果读到了head符号，则检测一下完整性，如果完整即存入队列
-//如果head符号不出现，就一直丢弃数据
-//这里一次读一个好处理一点，不然很麻烦
-#ifdef DEBUG
-        {
-            std::lock_guard<std::mutex> lg(d_info_mutex);
-            YELLOW_INFO(true, "in receive_thread...\n");
-        }
-#endif
+        //这里的逻辑是
+        //如果读到了head符号，则检测一下完整性，如果完整即存入队列
+        //如果head符号不出现，就一直丢弃数据
+        //这里一次读一个好处理一点，不然很麻烦
+        DEBUG_BLOCK(
+            {
+                std::lock_guard<std::mutex> lg(d_info_mutex);
+                DEBUG_YELLOW_INFO(true, "in receive_thread...\n");
+            });
         while (!quitFlag)
         {
             std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
@@ -104,13 +110,9 @@ namespace smallBot
                                        std::bind(async_read_handler, std::ref(async_read_lock),
                                                  std::ref(read_cv),
                                                  std::ref(len), std::placeholders::_1, std::placeholders::_2));
-#ifdef DEBUG
-                YELLOW_INFO(false, "head read_cv wait:now len=" << len << std::endl);
-#endif
+                DEBUG_YELLOW_INFO(false, "head read_cv wait:now len = " << len << std::endl);
                 read_cv.wait(ul);
-#ifdef DEBUG
-                YELLOW_INFO(false, "head read_cv wake up:now len=" << len << std::endl);
-#endif
+                DEBUG_YELLOW_INFO(false, "head read_cv wake up:now len = " << len << std::endl);
             }
             if (quitFlag)
                 break;
@@ -123,16 +125,14 @@ namespace smallBot
                 {
                     std::unique_lock<std::mutex> ul(async_read_lock);
                     serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
-                                           std::bind(async_read_handler, std::ref(async_read_lock),
-                                                     std::ref(read_cv),
-                                                     std::ref(len), std::placeholders::_1, std::placeholders::_2));
-#ifdef DEBUG
-                    YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
-#endif
+                                           boost::bind(async_read_handler, boost::ref(async_read_lock),
+                                                       boost::ref(read_cv),
+                                                       boost::ref(len),
+                                                       boost::asio::placeholders::error,
+                                                       boost::asio::placeholders::bytes_transferred));
+                    DEBUG_YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
                     read_cv.wait(ul);
-#ifdef DEBUG
-                    YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
-#endif
+                    DEBUG_YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
                 }
                 if (quitFlag)
                     break;
@@ -143,14 +143,11 @@ namespace smallBot
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
             if (!complete_flag) //不完整，丢弃这些数据
             {
-#ifdef DEBUG
-                YELLOW_INFO(false, "check_frame_complete failed" << std::endl);
-#endif
+                DEBUG_YELLOW_INFO(false, "check_frame_complete failed" << std::endl);
                 continue;
             }
-#ifdef DEBUG
-            GREEN_INFO(true, "check_frame_complete successfully" << std::endl);
-#endif
+            DEBUG_YELLOW_INFO(true, "check_frame_complete successfully" << std::endl);
+
             //数据完整，存起来
             {
                 std::lock_guard<std::mutex> lg(receive_qLock);
@@ -165,12 +162,11 @@ namespace smallBot
                     receive_q.pop();
             }
         }
-#ifdef DEBUG
-        {
-            std::lock_guard<std::mutex> lg(d_info_mutex);
-            YELLOW_INFO(true, "quit receive_thread\n");
-        }
-#endif
+        DEBUG_BLOCK(
+            {
+                std::lock_guard<std::mutex> lg(d_info_mutex);
+                DEBUG_YELLOW_INFO(true, "quit receive_thread\n");
+            });
     }
     serial_protocol::frame_data serial_protocol::get_oneFrame()
     {
@@ -185,12 +181,11 @@ namespace smallBot
 
     void serial_protocol::send_thread()
     {
-#ifdef DEBUG
-        {
-            std::lock_guard<std::mutex> lg(d_info_mutex);
-            YELLOW_INFO(true, "in send_thread...\n");
-        }
-#endif
+        DEBUG_BLOCK(
+            {
+                std::lock_guard<std::mutex> lg(d_info_mutex);
+                DEBUG_YELLOW_INFO(true, "in send_thread...\n");
+            });
         while (!quitFlag)
         {
             frame_data f;
@@ -204,9 +199,8 @@ namespace smallBot
                 send_q.pop();
             }
             uint64_t id = lastest_ack_id;
-#ifdef DEBUG
-            int retry_times = 0;
-#endif
+            DEBUG_BLOCK(
+                int retry_times = 0;);
             do
             {
 
@@ -216,21 +210,18 @@ namespace smallBot
                 call_me_thread_handle = std::thread(std::bind(&serial_protocol::call_me_thread, this));
                 call_me_thread_handle.detach();
                 timeout_cv.wait(tL);
-//被唤醒之后，判断一下根据id判断是否收到了ack，收到就ok，没收到就重发
-#ifdef DEBUG
-                {
-                    std::lock_guard<std::mutex> lg(d_info_mutex);
-                    if (lastest_ack_id > id)
-                        YELLOW_INFO(false, "receive ACK\n");
-                    else
-                        RED_INFO(false, "wait ACK timeout " << ++retry_times << " times,retry\n");
-                }
-#endif
+                //被唤醒之后，判断一下根据id判断是否收到了ack，收到就ok，没收到就重发
+                DEBUG_BLOCK(
+                    {
+                        std::lock_guard<std::mutex> lg(d_info_mutex);
+                        if (lastest_ack_id > id)
+                            DEBUG_YELLOW_INFO(false, "receive ACK\n");
+                        else
+                            RED_INFO(false, "wait ACK timeout " << ++retry_times << " times,retry\n");
+                    });
             } while (lastest_ack_id <= id && !quitFlag);
         }
-#ifdef DEBUG
-        YELLOW_INFO(true, "quit send_thread\n");
-#endif
+        DEBUG_YELLOW_INFO(true, "quit send_thread\n");
     }
     void serial_protocol::set_oneFrame(const frame_data &frame)
     {
