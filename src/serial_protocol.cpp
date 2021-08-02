@@ -20,8 +20,7 @@ namespace smallBot
 {
     const size_t BUFFER_UPPER = 512;
     DEBUG_BLOCK(
-        void printHex(const serial_protocol::frame_data &f)
-        {
+        void printHex(const serial_protocol::frame_data &f) {
             std::lock_guard<std::mutex> lg(d_info_mutex);
             for (int i = 0; i < f.len; ++i)
                 DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)f.ptr[i] << " ");
@@ -104,40 +103,41 @@ namespace smallBot
         {
             std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
             std::size_t len = 0;
-            {
-                std::unique_lock<std::mutex> ul(async_read_lock);
-                serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
-                                       std::bind(async_read_handler, std::ref(async_read_lock),
-                                                 std::ref(read_cv),
-                                                 std::ref(len), std::placeholders::_1, std::placeholders::_2));
-                DEBUG_YELLOW_INFO(false, "head read_cv wait:now len = " << len << std::endl);
-                read_cv.wait(ul);
-                DEBUG_YELLOW_INFO(false, "head read_cv wake up:now len = " << len << std::endl);
-            }
-            if (quitFlag)
-                break;
-            //len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1)); //1个1个读，好处理一点
+            // {
+            //     std::unique_lock<std::mutex> ul(async_read_lock);
+            //     serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+            //                            std::bind(async_read_handler, std::ref(async_read_lock),
+            //                                      std::ref(read_cv),
+            //                                      std::ref(len), std::placeholders::_1, std::placeholders::_2));
+            //     DEBUG_YELLOW_INFO(false, "head read_cv wait:now len = " << len << std::endl);
+            //     read_cv.wait(ul);
+            //     DEBUG_YELLOW_INFO(false, "head read_cv wake up:now len = " << len << std::endl);
+            // }
+            // if (quitFlag)
+            //     break;
+            len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1)); //1个1个读，好处理一点
+            DEBUG_YELLOW_INFO(false, "i got something\n");
             if (buffer[0] != serial_protocol::CMD::head) //第一个字节就错了，直接过了它
                 continue;
             bool complete_flag = false;
             do
             {
-                {
-                    std::unique_lock<std::mutex> ul(async_read_lock);
-                    serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
-                                           boost::bind(async_read_handler, boost::ref(async_read_lock),
-                                                       boost::ref(read_cv),
-                                                       boost::ref(len),
-                                                       boost::asio::placeholders::error,
-                                                       boost::asio::placeholders::bytes_transferred));
-                    DEBUG_YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
-                    read_cv.wait(ul);
-                    DEBUG_YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
-                }
-                if (quitFlag)
-                    break;
+                // {
+                //     std::unique_lock<std::mutex> ul(async_read_lock);
+                //     serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+                //                            boost::bind(async_read_handler, boost::ref(async_read_lock),
+                //                                        boost::ref(read_cv),
+                //                                        boost::ref(len),
+                //                                        boost::asio::placeholders::error,
+                //                                        boost::asio::placeholders::bytes_transferred));
+                //     DEBUG_YELLOW_INFO(false, "body read_cv wait:now len=" << len << std::endl);
+                //     read_cv.wait(ul);
+                //     DEBUG_YELLOW_INFO(false, "body read_cv wake up:now len=" << len << std::endl);
+                // }
+                // if (quitFlag)
+                //     break;
 
-                //len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
+                len += serial.read_some(boost::asio::buffer(buffer.get() + len, 1));
                 if (len == BUFFER_UPPER || quitFlag)
                     break;
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
