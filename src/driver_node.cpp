@@ -1,3 +1,13 @@
+/**
+ * @file driver_node.cpp
+ * @author littledang (857551494@qq.com)
+ * @brief 驱动的节点
+ * @version 0.1
+ * @date 2021-08-03
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "driver_base.h"
 #include "driver_odom.h"
 #include "timerAndColor/color.h"
@@ -43,9 +53,9 @@ int main(int argc, char **argv)
             port_name, baud_rate, timeout_millseconds, qs);
     GREEN_INFO(true, "Control smallBot via " << port_name << "." << std::endl);
 
-    smallBot::driver_base dr_base(sp_ptr, cmd_name, reductionRate, L, wheelR);
-    smallBot::driver_odom dr_odom(sp_ptr, reductionRate, L, wheelR, tpr, odom_name,
+    smallBot::driver_base dr_base(sp_ptr, cmd_name, reductionRate, L, wheelR);      //会自动注册到回调函数里面，所以这样就好了
+    smallBot::driver_odom dr_odom(sp_ptr, reductionRate, L, wheelR, tpr, odom_name, //会自动注册到sp_ptr里面，所以这样就好了
                                   odom_frame, child_frame, sendOdom, sendTF);
-    ros::spin();
+    ros::spin(); //等回调
     return 0;
 }

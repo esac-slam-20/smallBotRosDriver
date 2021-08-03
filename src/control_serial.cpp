@@ -1,3 +1,13 @@
+/**
+ * @file control_serial.cpp
+ * @author littledang (857551494@qq.com)
+ * @brief 类似串口调试助手？实现协议的所有功能
+ * @version 0.1
+ * @date 2021-08-03
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "serial_protocol.h"
 #include "timerAndColor/color.h"
 using namespace smallBot;

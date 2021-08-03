@@ -1,3 +1,13 @@
+/**
+ * @file driver_odom.h
+ * @author littledang (857551494@qq.com)
+ * @brief 主要用于接收下位机odom数据，并解析到ros话题和tf上。
+ * @version 0.1
+ * @date 2021-08-03
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #pragma once
 #include "ros/node_handle.h"
 #include "serial_protocol.h"
@@ -12,6 +22,20 @@ namespace smallBot
     {
 
     public:
+        /**
+         * @brief Construct a new driver odom object
+         * 
+         * @param sp_ptr 串口指针，内部会调用它
+         * @param reductionRate 减速比，例如1:30=0.0333
+         * @param L 小车半径
+         * @param wheelR 轮子半径
+         * @param tpr tick/circle
+         * @param odom_name topic name
+         * @param _odom_frame 
+         * @param _odom_child_frame 
+         * @param _sendMsg 
+         * @param _sendTF 
+         */
         driver_odom(std::shared_ptr<serial_protocol> &sp_ptr,
                     const float &reductionRate,
                     const float &L,
@@ -22,7 +46,6 @@ namespace smallBot
                     const std::string &_odom_child_frame,
                     const bool &_sendMsg,
                     const bool &_sendTF);
-        void run(const serial_protocol::frame_data &f);
 
     private:
         void publishOdom();
@@ -56,5 +79,12 @@ namespace smallBot
 
         uint64_t mc;                      //记录过了多久的
         myTimer::millTimer<>::type timer; //计时器
+
+        /**
+         * @brief 回调函数，注册到了sp_ptr里面，sp_ptr接收到帧会自动调用 
+         * 
+         * @param f 
+         */
+        void run(const serial_protocol::frame_data &f);
     };
 }
