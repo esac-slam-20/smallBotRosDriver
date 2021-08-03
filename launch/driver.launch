@@ -8,7 +8,7 @@
     <param name="timeout_millseconds" type="int" value="2"/>
     <param name="receive_queue_size"  type="int" value="100"/>
     <param name="reductionRate"  type="double" value="0.033"/>
-    <param name="L"  type="double" value="0.015"/>
+    <param name="L"  type="double" value="0.105"/>
     <param name="wheelR"  type="double" value="0.029"/>
 
     <param name="tpr"  type="double" value="334"/>
