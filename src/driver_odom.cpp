@@ -35,8 +35,8 @@ namespace smallBot
         magicMatrix << cosf(-90.0 / 180.0 * M_PI), sinf(-90.0 / 180.0 * M_PI), L, //1
             cosf(30.0 / 180.0 * M_PI), sinf(30.0 / 180.0 * M_PI), L,              //2
             cosf(150.0 / 180.0 * M_PI), sinf(150.0 / 180.0 * M_PI), L;            //3
-        auto _magicMatrix = magicMatrix.inverse();
-        magicMatrix = _magicMatrix;
+        //auto _magicMatrix = magicMatrix.inverse();
+        //magicMatrix = _magicMatrix;
         sp_ptr->setCallback(std::bind(&driver_odom::run, this, std::placeholders::_1));
     }
     void driver_odom::run(const serial_protocol::frame_data &f)
@@ -72,7 +72,9 @@ namespace smallBot
                 break;                                //如果两者的差值大于int32的一半，那说明越界了，直接放弃这一个值
             DEBUG_YELLOW_INFO(false, "begin core\n"); //核心功能开始了
 
-            Eigen::Vector3f vel = magicMatrix * Eigen::Vector3f(do1, do2, do3);
+            Eigen::Vector3f vel = magicMatrix.bdcSvd(Eigen::ComputeFullU | Eigen::ComputeFullV).solve(Eigen::Vector3f(do1, do2, do3));
+
+            //Eigen::Vector3f vel = magicMatrix * Eigen::Vector3f(do1, do2, do3);
             //假设tpr tick一圈
             vel = vel * M_PI * 2 * wheelR * reductionRate / tpr;
 
