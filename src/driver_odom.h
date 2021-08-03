@@ -52,6 +52,7 @@ namespace smallBot
 
         float tpr;                   //多少tick 一圈
         Eigen::Matrix3f magicMatrix; //核心矩阵 是个常量矩阵
+        Eigen::BDCSVD<Eigen::Matrix3f> svdMatrix;
 
         uint64_t mc;                      //记录过了多久的
         myTimer::millTimer<>::type timer; //计时器

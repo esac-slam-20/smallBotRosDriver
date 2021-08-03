@@ -37,6 +37,7 @@ namespace smallBot
             cosf(150.0 / 180.0 * M_PI), sinf(150.0 / 180.0 * M_PI), L;            //3
         //auto _magicMatrix = magicMatrix.inverse();
         //magicMatrix = _magicMatrix;
+        svdMatrix = magicMatrix.bdcSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
         sp_ptr->setCallback(std::bind(&driver_odom::run, this, std::placeholders::_1));
     }
     void driver_odom::run(const serial_protocol::frame_data &f)
@@ -61,9 +62,10 @@ namespace smallBot
         do1 = o1 - lo1;
         do2 = o2 - lo2;
         do3 = o3 - lo3;
-        mc = timer.end("", true, false); //刷新时间
-        if (mc == 0)                     //两帧太近了，多积分一点再说
+        uint64_t tmc = timer.end("", false, false);
+        if (tmc < 10) //两帧太近了，多积分一点再说
             return;
+        mc = timer.end("", true, false);
         do
         {
             if (std::abs(do1) > INT32_MAX / 2.0 ||
@@ -72,7 +74,7 @@ namespace smallBot
                 break;                                //如果两者的差值大于int32的一半，那说明越界了，直接放弃这一个值
             DEBUG_YELLOW_INFO(false, "begin core\n"); //核心功能开始了
 
-            Eigen::Vector3f vel = magicMatrix.bdcSvd(Eigen::ComputeFullU | Eigen::ComputeFullV).solve(Eigen::Vector3f(do1, do2, do3));
+            Eigen::Vector3f vel = svdMatrix.solve(Eigen::Vector3f(do1, do2, do3));
 
             //Eigen::Vector3f vel = magicMatrix * Eigen::Vector3f(do1, do2, do3);
             //假设tpr tick一圈
