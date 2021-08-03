@@ -74,7 +74,7 @@ namespace smallBot
 
             Eigen::Vector3f vel = magicMatrix * Eigen::Vector3f(do1, do2, do3);
             //假设tpr tick一圈
-            vel = vel * M_PI * 2 * wheelR * reductionRate * tpr;
+            vel = vel * M_PI * 2 * wheelR * reductionRate / tpr;
 
             vt = Eigen::Vector3f(vel(0), vel(1), 0) * 1000 / mc;
             vw = vel(2) * 1000 / mc;

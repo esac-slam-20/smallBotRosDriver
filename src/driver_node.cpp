@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     nh.param<double>("L", L, 0.105);
     nh.param<double>("wheelR", wheelR, 0.029); //2.9cm
 
-    nh.param<double>("tpr", wheelR, 1);
+    nh.param<double>("tpr", tpr, 334);
     nh.param<std::string>("odom_name", odom_name, "/odom");
     nh.param<std::string>("odom_frame", odom_frame, "/odom");
     nh.param<std::string>("child_frame", child_frame, "/base_footprint");

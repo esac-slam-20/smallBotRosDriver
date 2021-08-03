@@ -216,6 +216,7 @@ namespace smallBot
                         else
                             RED_INFO(false, "wait ACK timeout " << ++retry_times << " times,retry\n");
                     });
+                //break;
             } while (lastest_ack_id <= id && !quitFlag);
         }
         DEBUG_YELLOW_INFO(true, "quit send_thread\n");

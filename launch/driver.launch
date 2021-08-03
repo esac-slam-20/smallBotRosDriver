@@ -2,6 +2,7 @@
   <node pkg="smallBotRosDriver"
    name="driver_node" type="driver_node" output="screen">
     <param name="port" type="str" value="/dev/ttyAMA0" />
+    <!-- <param name="port" type="str" value="/dev/pts/3" /> -->
     <param name="cmd" type="str" value="/cmd_vel"/>
     <param name="baud_rate" type="int" value="115200"/>
     <param name="timeout_millseconds" type="int" value="2"/>
@@ -10,7 +11,7 @@
     <param name="L"  type="double" value="0.015"/>
     <param name="wheelR"  type="double" value="0.029"/>
 
-    <param name="tpr"  type="double" value="1"/>
+    <param name="tpr"  type="double" value="334"/>
     <param name="odom_name"  type="str" value="/odom"/>
     <param name="odom_frame"  type="str" value="/odom"/>
     <param name="child_frame"  type="str" value="/base_footprint"/>
