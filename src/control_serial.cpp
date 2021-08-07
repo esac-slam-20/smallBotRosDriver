@@ -70,11 +70,15 @@ int main(int argc, char *argv[])
                     YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ACK:");
                     for (int i = 0; i < f.len; i++)
                         YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+                    std::cout << std::dec << std::endl;
+
                     break;
                 case serial_protocol::CMD::get_nack:
                     YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] NACK:");
                     for (int i = 0; i < f.len; i++)
                         YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+                    std::cout << std::dec << std::endl;
+
                     break;
                 case serial_protocol::CMD::get_odom:
                     if (!mode)
@@ -82,15 +86,17 @@ int main(int argc, char *argv[])
                         YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ODOM:");
                         for (int i = 0; i < f.len; i++)
                             YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+                        std::cout << std::dec << std::endl;
                     }
                     break;
                 default:
                     RED_INFO(true, f.frame_id << ". [" << f.timeStamp << "] UNKNOW:");
                     for (int i = 0; i < f.len; i++)
                         RED_INFO(true, std::hex << int(f.ptr[i]) << " ");
+                    std::cout << std::dec << std::endl;
+
                     break;
                 }
-                std::cout << std::dec << std::endl;
                 if (!mode)
                     if (sp.judge_frame_type(f) == serial_protocol::CMD::get_odom)
                     {
