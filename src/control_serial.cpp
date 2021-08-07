@@ -35,13 +35,13 @@ int main(int argc, char *argv[])
         port = argv[1];
         baud_rate = std::atoi(argv[2]);
     }
-    serial_protocol sp(port, baud_rate, 2, 1000, 1);
+    serial_protocol sp(port, baud_rate, 1000, 100, 1);
 
     do
     {
         GREEN_INFO(true,
                    "=========================\n\
-0.wait receive.when you receive,input any integer to stop\n\
+0.wait receive.when you receive,input any integer to stop [0 all 1 filter odom]\n\
 1.set speed [sp1 sp2 sp3 sp4]\n\
 2.set encode [tick]\n\
 3.set pid [p i d]\n\
@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
         std::cin >> key;
         if (key == 0)
         {
+            int mode;
+            std::cin >> mode;
             GREEN_INFO(false, "receive:\n");
             stop_r = false;
             std::thread stop_handle = std::thread(stop_receive);
@@ -62,32 +64,41 @@ int main(int argc, char *argv[])
                 auto f = sp.get_oneFrame();
                 if (!f.ptr)
                     continue;
-
                 switch (sp.judge_frame_type(f))
                 {
                 case serial_protocol::CMD::get_ack:
                     YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ACK:");
+                    for (int i = 0; i < f.len; i++)
+                        YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
                     break;
                 case serial_protocol::CMD::get_nack:
                     YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] NACK:");
+                    for (int i = 0; i < f.len; i++)
+                        YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
                     break;
                 case serial_protocol::CMD::get_odom:
-                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ODOM:");
+                    if (!mode)
+                    {
+                        YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ODOM:");
+                        for (int i = 0; i < f.len; i++)
+                            YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+                    }
                     break;
                 default:
                     RED_INFO(true, f.frame_id << ". [" << f.timeStamp << "] UNKNOW:");
+                    for (int i = 0; i < f.len; i++)
+                        RED_INFO(true, std::hex << int(f.ptr[i]) << " ");
                     break;
                 }
-                for (int i = 0; i < f.len; i++)
-                    YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
                 std::cout << std::dec << std::endl;
-                if (sp.judge_frame_type(f) == serial_protocol::CMD::get_odom)
-                {
-                    int32_t o1, o2, o3, o4;
-                    sp.get_odom(f, o1, o2, o3, o4);
-                    YELLOW_INFO(false, "analysis odom:"
-                                           << o1 << " " << o2 << " " << o3 << " " << o4 << std::endl);
-                }
+                if (!mode)
+                    if (sp.judge_frame_type(f) == serial_protocol::CMD::get_odom)
+                    {
+                        int32_t o1, o2, o3, o4;
+                        sp.get_odom(f, o1, o2, o3, o4);
+                        YELLOW_INFO(false, "analysis odom:"
+                                               << o1 << " " << o2 << " " << o3 << " " << o4 << std::endl);
+                    }
             }
             if (stop_handle.joinable())
                 stop_handle.join();
