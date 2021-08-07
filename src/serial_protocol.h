@@ -13,6 +13,7 @@
 #include <boost/asio.hpp>
 #include <condition_variable>
 
+#include "timerAndColor/timer.h"
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -104,8 +105,17 @@ namespace smallBot
             std::shared_ptr<uint8_t[]> ptr;
             std::size_t len;
             uint64_t frame_id;
+            double timeStamp;
             frame_data(std::shared_ptr<uint8_t[]> &_ptr,
                        std::size_t _len, uint64_t _frame_id) : ptr(_ptr), len(_len), frame_id(_frame_id)
+            {
+            }
+            frame_data(std::shared_ptr<uint8_t[]> &_ptr,
+                       std::size_t _len,
+                       uint64_t _frame_id,
+                       double timeStamp) : ptr(_ptr), len(_len),
+                                           frame_id(_frame_id),
+                                           timeStamp(timeStamp)
             {
             }
             frame_data() : ptr(nullptr)
@@ -239,6 +249,7 @@ namespace smallBot
 
         std::size_t r_q_size;
         std::size_t s_q_size;
+        myTimer::microTimer<myColor::YELLOW, true>::type countTime;
         void receive_thread();
         void send_thread();
         void call_me_thread();

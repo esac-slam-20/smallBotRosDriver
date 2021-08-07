@@ -1,10 +1,5 @@
 #include "serial_protocol.h"
-#include <boost/bind.hpp>
-#ifdef TIME
-#include "timerAndColor/timer.h"
-#elif DEBUG
-#include "timerAndColor/color.h"
-#endif
+//#include <boost/bind.hpp>
 
 #ifdef DEBUG
 std::mutex d_info_mutex;
@@ -29,7 +24,8 @@ namespace smallBot
           lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop),
           timeout_millseconds(timeout_millseconds),
           frame_id(0), quitFlag(false), lastest_ack_id(0),
-          r_q_size(rqs), hasCallback(false), s_q_size(sqs)
+          r_q_size(rqs), hasCallback(false), s_q_size(sqs),
+          countTime("")
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -148,9 +144,11 @@ namespace smallBot
                     std::lock_guard<std::mutex> tL(timeout_Lock);
                     timeout_cv.notify_one(); //唤醒
                 }
+                auto f = frame_data(buffer, len, frame_id++,
+                                    countTime.end("", false, false) / 1000.0);
                 if (hasCallback)
-                    receive_callback(frame_data(buffer, len, frame_id + 1));
-                receive_q.push(frame_data(buffer, len, frame_id++));
+                    receive_callback(f);
+                receive_q.push(f);
                 if (receive_q.size() == r_q_size)
                     receive_q.pop();
             }

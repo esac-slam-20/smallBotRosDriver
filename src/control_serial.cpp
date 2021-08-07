@@ -22,13 +22,20 @@ void stop_receive()
 int main(int argc, char *argv[])
 {
     stop_r = false;
-    if (argc != 3)
+    if (argc != 3 && argc != 1)
     {
-        RED_INFO(true, "arg error.usage: ./control_serial /port baud_rate\n");
+        RED_INFO(true, "arg error.usage: ./control_serial /port baud_rate\ndefault /dev/ttyAMA0 115200");
         exit(-1);
     }
     int key;
-    serial_protocol sp(argv[1], std::atoi(argv[2]), 2, 1000, 1);
+    std::string port = "/dev/ttyAMA0";
+    int baud_rate = 115200;
+    if (argc == 3)
+    {
+        port = argv[1];
+        baud_rate = std::atoi(argv[2]);
+    }
+    serial_protocol sp(port, baud_rate, 2, 1000, 1);
 
     do
     {
@@ -59,16 +66,16 @@ int main(int argc, char *argv[])
                 switch (sp.judge_frame_type(f))
                 {
                 case serial_protocol::CMD::get_ack:
-                    YELLOW_INFO(true, f.frame_id << ".ACK:");
+                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ACK:");
                     break;
                 case serial_protocol::CMD::get_nack:
-                    YELLOW_INFO(true, f.frame_id << ".NACK:");
+                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] NACK:");
                     break;
                 case serial_protocol::CMD::get_odom:
-                    YELLOW_INFO(true, f.frame_id << ".ODOM:");
+                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ODOM:");
                     break;
                 default:
-                    RED_INFO(true, f.frame_id << ".UNKNOW:");
+                    RED_INFO(true, f.frame_id << ". [" << f.timeStamp << "] UNKNOW:");
                     break;
                 }
                 for (int i = 0; i < f.len; i++)
