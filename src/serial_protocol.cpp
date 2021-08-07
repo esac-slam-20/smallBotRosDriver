@@ -1,19 +1,13 @@
 #include "serial_protocol.h"
 #include <boost/bind.hpp>
-#ifdef DEBUG
+#ifdef TIME
+#include "timerAndColor/timer.h"
+#elif DEBUG
 #include "timerAndColor/color.h"
 #endif
 
 #ifdef DEBUG
 std::mutex d_info_mutex;
-#endif
-
-#ifdef DEBUG
-#define DEBUG_YELLOW_INFO(B, ...) YELLOW_INFO(B, __VA_ARGS__)
-#define DEBUG_BLOCK(...) __VA_ARGS__
-#else
-#define DEBUG_YELLOW_INFO(B, ...)
-#define DEBUG_BLOCK(...)
 #endif
 
 namespace smallBot
@@ -28,12 +22,14 @@ namespace smallBot
         });
     serial_protocol::serial_protocol(const std::string &port,
                                      const uint &baud_rate, const uint32_t &timeout_millseconds,
-                                     const std::size_t &qs)
+                                     const std::size_t &rqs,
+                                     const std::size_t &sqs)
         : ioserv(), serial(ioserv, port),
           lsp1(serial_protocol::speed::stop), lsp2(serial_protocol::speed::stop),
           lsp3(serial_protocol::speed::stop), lsp4(serial_protocol::speed::stop),
           timeout_millseconds(timeout_millseconds),
-          frame_id(0), quitFlag(false), lastest_ack_id(0), r_q_size(qs), hasCallback(false)
+          frame_id(0), quitFlag(false), lastest_ack_id(0),
+          r_q_size(rqs), hasCallback(false), s_q_size(sqs)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -198,11 +194,18 @@ namespace smallBot
             uint64_t id = lastest_ack_id;
             DEBUG_BLOCK(
                 int retry_times = 0;);
+
+            TIME_BLOCK(
+                lmicroTimer("send one frame and wait ack");)
+
             do
             {
-
-                boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
-                                                               f.len));
+                {
+                    TIME_BLOCK(
+                        lmicroTimer("write one frame");)
+                    boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
+                                                                   f.len));
+                }
                 std::unique_lock<std::mutex> tL(timeout_Lock);
                 call_me_thread_handle = std::thread(std::bind(&serial_protocol::call_me_thread, this));
                 call_me_thread_handle.detach();
@@ -224,6 +227,8 @@ namespace smallBot
     void serial_protocol::set_oneFrame(const frame_data &frame)
     {
         std::lock_guard<std::mutex> lg(send_qLock);
+        while (send_q.size() >= s_q_size)
+            send_q.pop();
         send_q.push(frame);
         send_cv.notify_one();
     }

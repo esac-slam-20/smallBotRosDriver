@@ -68,6 +68,7 @@
         "typeinfo": "cpp"
     },
     "C_Cpp.default.defines": [
-        "DEBUG"
+        "DEBUG",
+        "TIME"
     ]
 }

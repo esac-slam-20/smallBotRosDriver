@@ -17,6 +17,20 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+
+#ifdef TIME
+#define TIME_BLOCK(...) __VA_ARGS__
+#else
+#define TIME_BLOCK(...)
+#endif
+
+#ifdef DEBUG
+#define DEBUG_YELLOW_INFO(B, ...) YELLOW_INFO(B, __VA_ARGS__)
+#define DEBUG_BLOCK(...) __VA_ARGS__
+#else
+#define DEBUG_YELLOW_INFO(B, ...)
+#define DEBUG_BLOCK(...)
+#endif
 namespace smallBot
 {
     class serial_protocol
@@ -110,7 +124,8 @@ namespace smallBot
             const std::string &port,
             const uint &baud_rate,
             const uint32_t &timeout_millseconds,
-            const std::size_t &qs);
+            const std::size_t &rqs,
+            const std::size_t &sqs);
 
         /**
          * @brief 设置回调函数，接收到一帧数据的时候会自动执行一次，目前没有用队列来实现，意味着只能设置一个，新的来了会替代掉旧的，之后有需要再拓展
@@ -223,6 +238,7 @@ namespace smallBot
         std::atomic_uint64_t lastest_ack_id;
 
         std::size_t r_q_size;
+        std::size_t s_q_size;
         void receive_thread();
         void send_thread();
         void call_me_thread();

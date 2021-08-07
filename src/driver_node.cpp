@@ -30,12 +30,14 @@ int main(int argc, char **argv)
     bool sendTF;
     bool sendOdom;
 
-    int baud_rate, timeout_millseconds, qs;
+    int baud_rate, timeout_millseconds, rqs, sqs;
     nh.param<std::string>("port", port_name, "/dev/ttyAMA0");
     nh.param<std::string>("cmd", cmd_name, "/cmd_vel");
     nh.param<int>("baud_rate", baud_rate, 115200);
     nh.param<int>("timeout_millseconds", timeout_millseconds, 2);
-    nh.param<int>("receive_queue_size", qs, 100);
+    nh.param<int>("receive_queue_size", rqs, 100);
+    nh.param<int>("send_queue_size", sqs, 1);
+
     nh.param<double>("reductionRate", reductionRate, 1.0 / 30.0);
     nh.param<double>("L", L, 0.105);
     nh.param<double>("wheelR", wheelR, 0.029); //2.9cm
@@ -50,7 +52,7 @@ int main(int argc, char **argv)
 
     std::shared_ptr<smallBot::serial_protocol>
         sp_ptr = std::make_shared<smallBot::serial_protocol>(
-            port_name, baud_rate, timeout_millseconds, qs);
+            port_name, baud_rate, timeout_millseconds, rqs, sqs);
     GREEN_INFO(true, "Control smallBot via " << port_name << "." << std::endl);
 
     smallBot::driver_base dr_base(sp_ptr, cmd_name, reductionRate, L, wheelR);      //会自动注册到回调函数里面，所以这样就好了

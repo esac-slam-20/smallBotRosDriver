@@ -1,11 +1,4 @@
 #include "driver_odom.h"
-#ifdef DEBUG
-#define DEBUG_YELLOW_INFO(B, ...) YELLOW_INFO(B, __VA_ARGS__)
-#define DEBUG_BLOCK(...) __VA_ARGS__
-#else
-#define DEBUG_YELLOW_INFO(B, ...)
-#define DEBUG_BLOCK(...)
-#endif
 
 namespace smallBot
 {

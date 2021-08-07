@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         exit(-1);
     }
     int key;
-    serial_protocol sp(argv[1], std::atoi(argv[2]), 2, 1000);
+    serial_protocol sp(argv[1], std::atoi(argv[2]), 2, 1000, 1);
 
     do
     {
