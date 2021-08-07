@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
         port = argv[1];
         baud_rate = std::atoi(argv[2]);
     }
-    serial_protocol sp(port, baud_rate, 1000, 100, 1);
+    serial_protocol sp(port, baud_rate, 1000, 1000000, 1);
 
     do
     {
