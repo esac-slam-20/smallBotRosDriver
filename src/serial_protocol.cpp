@@ -201,8 +201,10 @@ namespace smallBot
                 {
                     TIME_BLOCK(
                         lmicroTimer("write one frame");)
-                    boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
-                                                                   f.len));
+                    //这个操作是不得已的暴力解决方案
+                    for (int i = 0; i < 20; i++)
+                        boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
+                                                                       f.len));
                 }
                 std::unique_lock<std::mutex> tL(timeout_Lock);
                 call_me_thread_handle = std::thread(std::bind(&serial_protocol::call_me_thread, this));
