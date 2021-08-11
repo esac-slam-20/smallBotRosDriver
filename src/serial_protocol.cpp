@@ -28,7 +28,7 @@ namespace smallBot
         : ioserv(), serial(ioserv, port),
           timeout_millseconds(timeout_millseconds),
           quitFlag(false), hasCallback(false), s_q_size(sqs),
-          countTime(""), cancelFlag(false)
+          countTime(""), cancelFlag(false), uniqueId(0)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -191,11 +191,14 @@ namespace smallBot
                                                                    f.len));
                 }
                 cancelFlag = false;
+                uniqueId++;
                 auto cancelThread = std::thread([this]()
                                                 {
+                                                    int64_t x = uniqueId;
                                                     std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
                                                     cancelFlag = true;
-                                                    serial.cancel();
+                                                    if (uniqueId == x)
+                                                        serial.cancel();
                                                 });
                 //std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds - 2));
                 ack = get_oneFrame();
@@ -209,7 +212,7 @@ namespace smallBot
                 {
                     if (judge_frame_type(ack) == CMD::get_odom)
                     {
-                        cancelThread.join();
+                        cancelThread.detach();
                         break;
                     }
                 }
@@ -217,7 +220,7 @@ namespace smallBot
                 {
                     if (judge_frame_type(ack) == CMD::get_ack)
                     {
-                        cancelThread.join();
+                        cancelThread.detach();
                         break;
                     }
                 }

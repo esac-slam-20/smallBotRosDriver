@@ -231,6 +231,7 @@ namespace smallBot
 
         std::condition_variable send_cv; //这个是队列空和不空的时候用的
 
+        std::atomic_int64_t uniqueId;
         std::size_t s_q_size;
         myTimer::microTimer<myColor::YELLOW, true>::type countTime; //提供时间戳
         void send_thread();

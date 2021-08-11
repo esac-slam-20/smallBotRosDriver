@@ -9,7 +9,7 @@ find_package(catkin REQUIRED
   )
 
 #add_definitions(-DDEBUG) #会添加一些调试信息
-# add_definitions(-DTIME) #会添加一些时间的调试，不与debug共用一个宏避免影响
+#add_definitions(-DTIME) #会添加一些时间的调试，不与debug共用一个宏避免影响
 find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
