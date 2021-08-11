@@ -11,17 +11,19 @@
 #include "serial_protocol.h"
 #include "timerAndColor/color.h"
 using namespace smallBot;
-std::atomic_bool stop_r;
-void stop_receive()
+void getOdom(const smallBot::serial_protocol::frame_data &f)
 {
-    stop_r = false;
-    int i;
-    std::cin >> i;
-    stop_r = true;
+    YELLOW_INFO(true, "[" << f.timeStamp << "] ODOM:");
+    for (int i = 0; i < f.len; i++)
+        YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+    std::cout << std::dec << std::endl;
+    int32_t o1, o2, o3, o4;
+    serial_protocol::get_odom(f, o1, o2, o3, o4);
+    YELLOW_INFO(false, "analysis odom:"
+                           << o1 << " " << o2 << " " << o3 << " " << o4 << std::endl);
 }
 int main(int argc, char *argv[])
 {
-    stop_r = false;
     if (argc != 3 && argc != 1)
     {
         RED_INFO(true, "arg error.usage: ./control_serial /port baud_rate\ndefault /dev/ttyAMA0 115200");
@@ -35,13 +37,13 @@ int main(int argc, char *argv[])
         port = argv[1];
         baud_rate = std::atoi(argv[2]);
     }
-    serial_protocol sp(port, baud_rate, 1000, 1000000, 1);
-
+    serial_protocol sp(port, baud_rate, 1000, 1);
+    sp.setCallback(serial_protocol::CMD::set_odom, getOdom);
     do
     {
         GREEN_INFO(true,
                    "=========================\n\
-0.wait receive.when you receive,input any integer to stop [0 all 1 filter odom]\n\
+0.set odom\n\
 1.set speed [sp1 sp2 sp3 sp4]\n\
 2.set encode [tick]\n\
 3.set pid [p i d]\n\
@@ -52,62 +54,12 @@ int main(int argc, char *argv[])
         std::cin >> key;
         if (key == 0)
         {
-            int mode;
-            std::cin >> mode;
-            GREEN_INFO(false, "receive:\n");
-            stop_r = false;
-            std::thread stop_handle = std::thread(stop_receive);
-            stop_handle.detach();
-            while (!stop_r)
-            {
-
-                auto f = sp.get_oneFrame();
-                if (!f.ptr)
-                    continue;
-                switch (sp.judge_frame_type(f))
-                {
-                case serial_protocol::CMD::get_ack:
-                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ACK:");
-                    for (int i = 0; i < f.len; i++)
-                        YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-                    std::cout << std::dec << std::endl;
-
-                    break;
-                case serial_protocol::CMD::get_nack:
-                    YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] NACK:");
-                    for (int i = 0; i < f.len; i++)
-                        YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-                    std::cout << std::dec << std::endl;
-
-                    break;
-                case serial_protocol::CMD::get_odom:
-                    if (!mode)
-                    {
-                        YELLOW_INFO(true, f.frame_id << ". [" << f.timeStamp << "] ODOM:");
-                        for (int i = 0; i < f.len; i++)
-                            YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
-                        std::cout << std::dec << std::endl;
-                    }
-                    break;
-                default:
-                    RED_INFO(true, f.frame_id << ". [" << f.timeStamp << "] UNKNOW:");
-                    for (int i = 0; i < f.len; i++)
-                        RED_INFO(true, std::hex << int(f.ptr[i]) << " ");
-                    std::cout << std::dec << std::endl;
-
-                    break;
-                }
-                if (!mode)
-                    if (sp.judge_frame_type(f) == serial_protocol::CMD::get_odom)
-                    {
-                        int32_t o1, o2, o3, o4;
-                        sp.get_odom(f, o1, o2, o3, o4);
-                        YELLOW_INFO(false, "analysis odom:"
-                                               << o1 << " " << o2 << " " << o3 << " " << o4 << std::endl);
-                    }
-            }
-            if (stop_handle.joinable())
-                stop_handle.join();
+            GREEN_INFO(false, "odom " << std::endl);
+            auto f = sp.get_set_odom_frame();
+            for (int i = 0; i < f.len; i++)
+                YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+            std::cout << std::dec << std::endl;
+            sp.set_oneFrame(f);
         }
         else if (key == 1)
         {

@@ -18,7 +18,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-
+#include <unordered_map>
 #ifdef TIME
 #define TIME_BLOCK(...) __VA_ARGS__
 #else
@@ -73,10 +73,12 @@ namespace smallBot
         {
             //发送到的包用的
             inline static const uint8_t set_speed = 0x10;
+            inline static const uint8_t set_odom = 0x11;
             inline static const uint8_t set_encode = 0x20;
             inline static const uint8_t set_pid = 0x21;
             inline static const uint8_t set_save = 0x2e;
             inline static const uint8_t set_ignore = 0x2f;
+
             //接收到的包用的
             inline static const uint8_t get_ack = 0x00;
             inline static const uint8_t get_nack = 0x01;
@@ -104,17 +106,14 @@ namespace smallBot
         {
             std::shared_ptr<uint8_t[]> ptr;
             std::size_t len;
-            uint64_t frame_id;
             double timeStamp;
             frame_data(std::shared_ptr<uint8_t[]> &_ptr,
-                       std::size_t _len, uint64_t _frame_id) : ptr(_ptr), len(_len), frame_id(_frame_id)
+                       std::size_t _len) : ptr(_ptr), len(_len)
             {
             }
             frame_data(std::shared_ptr<uint8_t[]> &_ptr,
                        std::size_t _len,
-                       uint64_t _frame_id,
                        double timeStamp) : ptr(_ptr), len(_len),
-                                           frame_id(_frame_id),
                                            timeStamp(timeStamp)
             {
             }
@@ -134,7 +133,6 @@ namespace smallBot
             const std::string &port,
             const uint &baud_rate,
             const uint32_t &timeout_millseconds,
-            const std::size_t &rqs,
             const std::size_t &sqs);
 
         /**
@@ -142,16 +140,11 @@ namespace smallBot
          * 
          * @param cb 
          */
-        void setCallback(std::function<void(const frame_data &)> cb);
+        void setCallback(uint8_t cmdType, std::function<void(const frame_data &)> cb);
+        //基本暂时不需要提供删除回调，所以不写
 
         ~serial_protocol();
 
-        /**
-         * @brief Get the oneFrame object
-         * 
-         * @return frame_data 如果失败的话，fram里面的ptr是空的
-         */
-        frame_data get_oneFrame();
         /**
          * @brief 将一帧数据送到写队列，不一定会立刻发出去
          * 
@@ -168,17 +161,19 @@ namespace smallBot
          * @param sp4 
          * @return frame_data 
          */
-        frame_data get_set_speed_frame(int16_t sp1 = speed::nothing,
-                                       int16_t sp2 = speed::nothing,
-                                       int16_t sp3 = speed::nothing,
-                                       int16_t sp4 = speed::nothing);
+        static frame_data get_set_speed_frame(int16_t sp1 = speed::nothing,
+                                              int16_t sp2 = speed::nothing,
+                                              int16_t sp3 = speed::nothing,
+                                              int16_t sp4 = speed::nothing);
+
+        static frame_data get_set_odom_frame();
         /**
          * @brief Get the send encoder tick frame object
          * 
          * @param tick 
          * @return frame_data 
          */
-        frame_data get_send_encoder_tick_frame(uint16_t tick);
+        static frame_data get_send_encoder_tick_frame(uint16_t tick);
         /**
          * @brief Get the send pid frame object
          * 
@@ -187,19 +182,19 @@ namespace smallBot
          * @param d 
          * @return frame_data 
          */
-        frame_data get_send_pid_frame(float p, float i, float d);
+        static frame_data get_send_pid_frame(float p, float i, float d);
         /**
          * @brief Get the send save frame object
          * 
          * @return frame_data 
          */
-        frame_data get_send_save_frame();
+        static frame_data get_send_save_frame();
         /**
          * @brief Get the send ignore frame object
          * 
          * @return frame_data 
          */
-        frame_data get_send_ignore_frame();
+        static frame_data get_send_ignore_frame();
 
         /**
          * @brief 判断fram的类型
@@ -207,7 +202,7 @@ namespace smallBot
          * @param f 
          * @return uint8_t serial_protocol::CMD::
          */
-        uint8_t judge_frame_type(const frame_data &f);
+        static uint8_t judge_frame_type(const frame_data &f);
 
         /**
          * @brief 将frame解析成odom 的raw数据
@@ -218,44 +213,35 @@ namespace smallBot
          * @param o3 
          * @param o4 
          */
-        void get_odom(const frame_data &f, int32_t &o1, int32_t &o2,
-                      int32_t &o3, int32_t &o4);
+        static void get_odom(const frame_data &f, int32_t &o1, int32_t &o2,
+                             int32_t &o3, int32_t &o4);
 
     private:
         boost::asio::io_service ioserv; //这个要先初始化，写在前面
         boost::asio::serial_port serial;
-        int16_t lsp1, lsp2, lsp3, lsp4;
         uint32_t timeout_millseconds;
 
-        uint64_t frame_id; //接收到的帧的id,64位必不可能溢出,错误的帧不包括
+        std::mutex send_qLock; //发送队列锁
 
-        std::mutex receive_qLock; //接收队列锁
-        std::mutex send_qLock;    //发送队列锁
-        std::mutex timeout_Lock;  //超时锁
-        //std::mutex async_read_lock; //异步读锁
-
-        std::queue<frame_data> receive_q; //接收到的数据
-        std::queue<frame_data> send_q;    //存储待发送的数据
+        std::queue<frame_data> send_q; //存储待发送的数据
 
         std::atomic_bool quitFlag;
-        std::thread receive_thread_handle;
         std::thread sends_thread_handle;
-        std::thread call_me_thread_handle;
 
         std::condition_variable send_cv; //这个是队列空和不空的时候用的
-        //std::condition_variable read_cv;    //异步读条件变量
-        std::condition_variable timeout_cv; //超时用的
-        std::atomic_uint64_t lastest_ack_id;
 
-        std::size_t r_q_size;
         std::size_t s_q_size;
-        myTimer::microTimer<myColor::YELLOW, true>::type countTime;
-        void receive_thread();
+        myTimer::microTimer<myColor::YELLOW, true>::type countTime; //提供时间戳
         void send_thread();
         void call_me_thread();
-
+        /**
+         * @brief Get the oneFrame object
+         * 
+         * @return frame_data 如果失败的话，fram里面的ptr是空的
+         */
+        frame_data get_oneFrame();
         //回调函数
         bool hasCallback;
-        std::function<void(const frame_data &)> receive_callback;
+        std::unordered_map<uint8_t, std::function<void(const frame_data &)>> receive_callback;
     };
 }
