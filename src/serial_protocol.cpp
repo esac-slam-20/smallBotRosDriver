@@ -9,10 +9,17 @@ namespace smallBot
 {
     const size_t BUFFER_UPPER = 512;
     DEBUG_BLOCK(
-        void printHex(const serial_protocol::frame_data &f) {
+        void printHex(const serial_protocol::frame_data &f)
+        {
             std::lock_guard<std::mutex> lg(d_info_mutex);
             for (int i = 0; i < f.len; ++i)
                 DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)f.ptr[i] << " ");
+            std::cout << std::dec << std::endl;
+        } void printHex(uint8_t ptr[512], size_t len)
+        {
+            std::lock_guard<std::mutex> lg(d_info_mutex);
+            for (int i = 0; i < len; ++i)
+                DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)ptr[i] << " ");
             std::cout << std::dec << std::endl;
         });
     serial_protocol::serial_protocol(const std::string &port,
@@ -21,7 +28,7 @@ namespace smallBot
         : ioserv(), serial(ioserv, port),
           timeout_millseconds(timeout_millseconds),
           quitFlag(false), hasCallback(false), s_q_size(sqs),
-          countTime("")
+          countTime(""), cancelFlag(false)
     {
         serial.set_option(boost::asio::serial_port::baud_rate(baud_rate));
         serial.set_option(boost::asio::serial_port::flow_control());
@@ -54,17 +61,22 @@ namespace smallBot
         if (len < 6)
             return false;
         uint8_t frame_len = buffer[2];
+
         //长度不够一帧，不完整
         if (frame_len + 6 != len)
             return false;
 
         uint16_t crc = get_crc(buffer, frame_len + 3);
-
+        DEBUG_BLOCK(
+            printHex(buffer, len);)
         if (buffer[0] != serial_protocol::CMD::head ||
-            buffer[frame_len + 5] != serial_protocol::CMD::tail ||
+            buffer[frame_len + 5] != serial_protocol::CMD::tail
+            /*||
             serial_protocol::get_bit<0>(crc) != buffer[frame_len + 3] ||
-            serial_protocol::get_bit<1>(crc) != buffer[frame_len + 4])
+            serial_protocol::get_bit<1>(crc) != buffer[frame_len + 4]*/
+        )
             return false;
+
         return true;
     }
 
@@ -82,8 +94,11 @@ namespace smallBot
 
         std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
         std::size_t len = 0;
+        bool complete_flag = false;
+
         do
         {
+            DEBUG_YELLOW_INFO(true, len);
             serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
                                    std::bind(async_read_handler,
                                              std::ref(len),
@@ -92,10 +107,9 @@ namespace smallBot
             ioserv.run();
             if (quitFlag)
                 break;
-            DEBUG_YELLOW_INFO(false, "i got something\n");
+            DEBUG_YELLOW_INFO(false, "i got something** " << len << " " << int(buffer[0]) << std::endl);
             if (buffer[0] != serial_protocol::CMD::head) //第一个字节就错了，直接过了它
                 break;
-            bool complete_flag = false;
             do
             {
                 serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
@@ -109,7 +123,10 @@ namespace smallBot
                     break;
                 if (len == BUFFER_UPPER || quitFlag)
                     break;
+                if (cancelFlag)
+                    break;
             } while (!(complete_flag = check_frame_complete(buffer.get(), len)));
+
             if (!complete_flag) //不完整，丢弃这些数据
             {
                 DEBUG_YELLOW_INFO(false, "check_frame_complete failed" << std::endl);
@@ -122,6 +139,16 @@ namespace smallBot
 
         } while (0);
         //到这里就说明数据有问题了，886
+        if (!complete_flag && cancelFlag == false)
+        {
+            serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+                                   std::bind(async_read_handler,
+                                             std::ref(len),
+                                             std::placeholders::_1, std::placeholders::_2));
+            ioserv.reset();
+            ioserv.run();
+        }
+        DEBUG_YELLOW_INFO(true, "FIND SOMETHING WRONG\n");
         return frame_data();
     }
 
@@ -152,28 +179,47 @@ namespace smallBot
             frame_data ack;
             do
             {
+                DEBUG_BLOCK(
+                    RED_INFO(false, "wait ACK timeout " << retry_times++ << " times,retry\n");)
                 {
                     TIME_BLOCK(
                         lmicroTimer("write one frame");)
                     boost::asio::write(serial, boost::asio::buffer(f.ptr.get(),
                                                                    f.len));
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
+                cancelFlag = false;
+                auto cancelThread = std::thread([this]()
+                                                {
+                                                    std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
+                                                    cancelFlag = true;
+                                                    serial.cancel();
+                                                });
+                //std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds - 2));
                 ack = get_oneFrame();
+
                 if (!ack.ptr)
+                {
+                    cancelThread.detach();
                     continue;
+                }
                 if (judge_frame_type(f) == CMD::set_odom)
                 {
                     if (judge_frame_type(ack) == CMD::get_odom)
+                    {
+                        cancelThread.detach();
                         break;
+                    }
                 }
                 else
                 {
                     if (judge_frame_type(ack) == CMD::get_ack)
+                    {
+                        cancelThread.detach();
                         break;
+                    }
                 }
-                DEBUG_BLOCK(
-                    RED_INFO(false, "wait ACK timeout " << ++retry_times << " times,retry\n");)
+                cancelThread.join();
+
             } while (1);
 
             if (receive_callback.find(judge_frame_type(f)) != receive_callback.end())

@@ -221,6 +221,7 @@ namespace smallBot
         boost::asio::serial_port serial;
         uint32_t timeout_millseconds;
 
+        std::atomic_bool cancelFlag;
         std::mutex send_qLock; //发送队列锁
 
         std::queue<frame_data> send_q; //存储待发送的数据
@@ -233,7 +234,6 @@ namespace smallBot
         std::size_t s_q_size;
         myTimer::microTimer<myColor::YELLOW, true>::type countTime; //提供时间戳
         void send_thread();
-        void call_me_thread();
         /**
          * @brief Get the oneFrame object
          * 

@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
         port = argv[1];
         baud_rate = std::atoi(argv[2]);
     }
-    serial_protocol sp(port, baud_rate, 1000, 1);
+    serial_protocol sp(port, baud_rate, 5, 1);
     sp.setCallback(serial_protocol::CMD::set_odom, getOdom);
     do
     {

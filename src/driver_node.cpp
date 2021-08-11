@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
     std::shared_ptr<smallBot::serial_protocol>
         sp_ptr = std::make_shared<smallBot::serial_protocol>(
-            port_name, baud_rate, timeout_millseconds, rqs, sqs);
+            port_name, baud_rate, timeout_millseconds, sqs);
     GREEN_INFO(true, "Control smallBot via " << port_name << "." << std::endl);
 
     smallBot::driver_base dr_base(sp_ptr, cmd_name, reductionRate, L, wheelR);      //会自动注册到回调函数里面，所以这样就好了
