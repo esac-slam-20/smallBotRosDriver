@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
 6.quit\n\
 =========================\n");
         std::cin >> key;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
         if (key == 0)
         {
             GREEN_INFO(false, "odom " << std::endl);

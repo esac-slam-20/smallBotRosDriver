@@ -50,7 +50,7 @@ roslaunch smallBotRosDriver driver.launch #启动ros节点
 | baud_rate| int  | 波特率 |
 | cmd| str  | 速度的话题名字 |
 | timeout_millseconds| int  | 超时重发的最长等待时间，单位 毫秒 |
-| receive_queue_size| int  | 接收队列的长度 |
+| send_queue_size| int  | 发送队列的长度 |
 | reductionRate| double  | 减速度比 例如 1:30=1/30=0.3333 |
 | L| double  | 车子半径 |
 | wheelR| double  | 轮子半径 |

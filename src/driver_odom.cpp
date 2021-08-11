@@ -46,6 +46,7 @@ namespace smallBot
         {
             auto f = serial_protocol::get_set_odom_frame();
             sp_ptr->set_oneFrame(f);
+            DEBUG_YELLOW_INFO(false, "get odom\n");
             r.sleep();
         }
     }
@@ -53,9 +54,7 @@ namespace smallBot
     void driver_odom::callback(const serial_protocol::frame_data &f)
     {
         DEBUG_YELLOW_INFO(false, "be called\n");
-        if (f.ptr && sp_ptr->judge_frame_type(f) != serial_protocol::CMD::get_odom)
-            return; //没有doom，退出
-        DEBUG_YELLOW_INFO(false, "get odom\n");
+
         if (!hasInit) //没有初始化，初始化后退出
         {
             int32_t tmp;
@@ -105,6 +104,7 @@ namespace smallBot
         lo1 = o1;
         lo2 = o2;
         lo3 = o3;
+        DEBUG_YELLOW_INFO(false, "get odom\n");
     }
 
     void driver_odom::publishOdom()

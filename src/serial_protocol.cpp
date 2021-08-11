@@ -38,8 +38,6 @@ namespace smallBot
 
         //开启两个线程，一个用来发送，一个用来接收
         sends_thread_handle = std::thread(std::bind(&serial_protocol::send_thread, this));
-
-        ioserv.run();
     }
 
     void serial_protocol::setCallback(uint8_t cmdType, std::function<void(const frame_data &)> cb)
@@ -70,11 +68,9 @@ namespace smallBot
         DEBUG_BLOCK(
             printHex(buffer, len);)
         if (buffer[0] != serial_protocol::CMD::head ||
-            buffer[frame_len + 5] != serial_protocol::CMD::tail
-            /*||
+            buffer[frame_len + 5] != serial_protocol::CMD::tail ||
             serial_protocol::get_bit<0>(crc) != buffer[frame_len + 3] ||
-            serial_protocol::get_bit<1>(crc) != buffer[frame_len + 4]*/
-        )
+            serial_protocol::get_bit<1>(crc) != buffer[frame_len + 4])
             return false;
 
         return true;
@@ -93,6 +89,7 @@ namespace smallBot
     {
 
         std::shared_ptr<uint8_t[]> buffer(new uint8_t[BUFFER_UPPER]);
+        buffer[0] = 0;
         std::size_t len = 0;
         bool complete_flag = false;
 
@@ -141,7 +138,7 @@ namespace smallBot
         //到这里就说明数据有问题了，886
         if (!complete_flag && cancelFlag == false)
         {
-            serial.async_read_some(boost::asio::buffer(buffer.get() + len, 1),
+            serial.async_read_some(boost::asio::buffer(buffer.get(), BUFFER_UPPER),
                                    std::bind(async_read_handler,
                                              std::ref(len),
                                              std::placeholders::_1, std::placeholders::_2));
@@ -180,7 +177,13 @@ namespace smallBot
             do
             {
                 DEBUG_BLOCK(
-                    RED_INFO(false, "wait ACK timeout " << retry_times++ << " times,retry\n");)
+                    {
+                        if (retry_times == 0)
+                            GREEN_INFO(false, "wait ACK timeout " << retry_times++ << " times,retry\n");
+                        else
+                            RED_INFO(true, "wait ACK timeout " << retry_times++ << " times,retry\n");
+                    })
+
                 {
                     TIME_BLOCK(
                         lmicroTimer("write one frame");)
@@ -199,14 +202,14 @@ namespace smallBot
 
                 if (!ack.ptr)
                 {
-                    cancelThread.detach();
+                    cancelThread.join();
                     continue;
                 }
                 if (judge_frame_type(f) == CMD::set_odom)
                 {
                     if (judge_frame_type(ack) == CMD::get_odom)
                     {
-                        cancelThread.detach();
+                        cancelThread.join();
                         break;
                     }
                 }
@@ -214,7 +217,7 @@ namespace smallBot
                 {
                     if (judge_frame_type(ack) == CMD::get_ack)
                     {
-                        cancelThread.detach();
+                        cancelThread.join();
                         break;
                     }
                 }
