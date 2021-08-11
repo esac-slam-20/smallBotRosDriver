@@ -3,6 +3,7 @@
 namespace smallBot
 {
     driver_odom::driver_odom(std::shared_ptr<serial_protocol> &sp_ptr,
+                             const int rate,
                              const float &reductionRate,
                              const float &L,
                              const float &wheelR,
@@ -31,9 +32,25 @@ namespace smallBot
         //auto _magicMatrix = magicMatrix.inverse();
         //magicMatrix = _magicMatrix;
         svdMatrix = magicMatrix.bdcSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
-        sp_ptr->setCallback(std::bind(&driver_odom::run, this, std::placeholders::_1));
+        sp_ptr->setCallback(serial_protocol::CMD::set_odom, std::bind(&driver_odom::callback, this, std::placeholders::_1));
+        runHandle = std::thread(std::bind(&driver_odom::run, this, rate));
     }
-    void driver_odom::run(const serial_protocol::frame_data &f)
+    driver_odom::~driver_odom()
+    {
+        runHandle.join();
+    }
+    void driver_odom::run(int rate)
+    {
+        ros::Rate r(rate);
+        while (ros::ok())
+        {
+            auto f = serial_protocol::get_set_odom_frame();
+            sp_ptr->set_oneFrame(f);
+            r.sleep();
+        }
+    }
+
+    void driver_odom::callback(const serial_protocol::frame_data &f)
     {
         DEBUG_YELLOW_INFO(false, "be called\n");
         if (f.ptr && sp_ptr->judge_frame_type(f) != serial_protocol::CMD::get_odom)

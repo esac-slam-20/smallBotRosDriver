@@ -37,6 +37,7 @@ namespace smallBot
          * @param _sendTF 
          */
         driver_odom(std::shared_ptr<serial_protocol> &sp_ptr,
+                    const int rate,
                     const float &reductionRate,
                     const float &L,
                     const float &wheelR,
@@ -46,6 +47,8 @@ namespace smallBot
                     const std::string &_odom_child_frame,
                     const bool &_sendMsg,
                     const bool &_sendTF);
+        ~driver_odom();
+        void run(int rate);
 
     private:
         void publishOdom();
@@ -85,6 +88,8 @@ namespace smallBot
          * 
          * @param f 
          */
-        void run(const serial_protocol::frame_data &f);
+        void callback(const serial_protocol::frame_data &f);
+
+        std::thread runHandle;
     };
 }

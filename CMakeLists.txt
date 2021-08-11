@@ -29,35 +29,35 @@ include_directories(
 add_library(serial_protocol
   src/serial_protocol.cpp
 )
-# add_library(driver_base
-#   src/driver_base.cpp)
-# add_library(driver_odom
-#   src/driver_odom.cpp)
+add_library(driver_base
+  src/driver_base.cpp)
+add_library(driver_odom
+  src/driver_odom.cpp)
 target_link_libraries(serial_protocol
    ${Boost_LIBRARIES}
    pthread
 )
-# target_link_libraries(driver_base
-#   ${Boost_LIBRARIES}
-#   ${catkin_LIBRARIES}
-#   serial_protocol
-# )
+target_link_libraries(driver_base
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+  serial_protocol
+)
 
-# target_link_libraries(driver_odom
-#   ${Boost_LIBRARIES}
-#   ${catkin_LIBRARIES}
-#   serial_protocol
-# )
+target_link_libraries(driver_odom
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+  serial_protocol
+)
 
 
 add_executable(control_serial src/control_serial.cpp)
-# add_executable(driver_node src/driver_node.cpp)
+add_executable(driver_node src/driver_node.cpp)
 
 target_link_libraries(control_serial
   serial_protocol
 )
-# target_link_libraries(driver_node
-#   serial_protocol
-#   driver_base
-#   driver_odom
-# )
+target_link_libraries(driver_node
+  serial_protocol
+  driver_base
+  driver_odom
+)
