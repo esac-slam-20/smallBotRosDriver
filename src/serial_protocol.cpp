@@ -137,7 +137,6 @@ namespace smallBot
         } while (0);
         //到这里就说明数据有问题了，886
 
-        
         DEBUG_YELLOW_INFO(true, "FIND SOMETHING WRONG\n");
         return frame_data();
     }
@@ -189,13 +188,12 @@ namespace smallBot
                                                 {
                                                     int64_t x = uniqueId;
                                                     std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
-                                                    
-                                                    if (uniqueId == x)
-                                                    {   
-                                                         serial.cancel();
-                                                         cancelFlag = true;
-                                                    }
 
+                                                    if (uniqueId == x)
+                                                    {
+                                                        cancelFlag = true;
+                                                        serial.cancel();
+                                                    }
                                                 });
                 //std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds - 2));
                 ack = get_oneFrame();
