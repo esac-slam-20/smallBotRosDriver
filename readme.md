@@ -56,6 +56,7 @@ roslaunch smallBotRosDriver driver.launch #启动ros节点
 | wheelR| double  | 轮子半径 |
 | tpr| double  | 多少个tick一周 |
 | odom_name| str  | odom的话题名 |
+| odom_rate| int  | odom的采样频率 hz|
 | odom_frame| str  | odom的frame名 |
 | child_frame| str  | odom的child frame 名 |
 | sendTF| bool  | 是否发TF |
