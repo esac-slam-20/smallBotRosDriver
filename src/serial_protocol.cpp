@@ -136,15 +136,8 @@ namespace smallBot
 
         } while (0);
         //到这里就说明数据有问题了，886
-        if (!complete_flag && cancelFlag == false)
-        {
-            serial.async_read_some(boost::asio::buffer(buffer.get(), BUFFER_UPPER),
-                                   std::bind(async_read_handler,
-                                             std::ref(len),
-                                             std::placeholders::_1, std::placeholders::_2));
-            ioserv.reset();
-            ioserv.run();
-        }
+
+        
         DEBUG_YELLOW_INFO(true, "FIND SOMETHING WRONG\n");
         return frame_data();
     }
@@ -196,9 +189,13 @@ namespace smallBot
                                                 {
                                                     int64_t x = uniqueId;
                                                     std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
-                                                    cancelFlag = true;
+                                                    
                                                     if (uniqueId == x)
-                                                        serial.cancel();
+                                                    {   
+                                                         serial.cancel();
+                                                         cancelFlag = true;
+                                                    }
+
                                                 });
                 //std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds - 2));
                 ack = get_oneFrame();
