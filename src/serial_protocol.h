@@ -74,6 +74,7 @@ namespace smallBot
             //发送到的包用的
             inline static const uint8_t set_speed = 0x10;
             inline static const uint8_t set_odom = 0x11;
+            inline static const uint8_t set_batt = 0x12;
             inline static const uint8_t set_encode = 0x20;
             inline static const uint8_t set_pid = 0x21;
             inline static const uint8_t set_save = 0x2e;
@@ -84,6 +85,7 @@ namespace smallBot
             inline static const uint8_t get_nack = 0x01;
             inline static const uint8_t get_invalid_args = 0x02;
             inline static const uint8_t get_odom = 0x80;
+            inline static const uint8_t get_batt = 0x81;
 
             //包头包尾巴
             inline static const uint8_t head = 0x55;
@@ -167,6 +169,8 @@ namespace smallBot
                                               int16_t sp4 = speed::nothing);
 
         static frame_data get_set_odom_frame();
+        static frame_data get_set_batt_frame();
+
         /**
          * @brief Get the send encoder tick frame object
          * 
@@ -215,6 +219,7 @@ namespace smallBot
          */
         static void get_odom(const frame_data &f, int32_t &o1, int32_t &o2,
                              int32_t &o3, int32_t &o4);
+        static void get_batt(const frame_data &f, uint16_t &batt); //mv
 
     private:
         boost::asio::io_service ioserv; //这个要先初始化，写在前面

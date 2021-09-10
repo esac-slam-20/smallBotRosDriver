@@ -3,7 +3,7 @@
 namespace smallBot
 {
     driver_odom::driver_odom(std::shared_ptr<serial_protocol> &sp_ptr,
-                             const int rate,
+                             const float rate,
                              const float &reductionRate,
                              const float &L,
                              const float &wheelR,
@@ -39,7 +39,7 @@ namespace smallBot
     {
         runHandle.join();
     }
-    void driver_odom::run(int rate)
+    void driver_odom::run(float rate)
     {
         ros::Rate r(rate);
         while (ros::ok())

@@ -2,10 +2,10 @@
   <node pkg="smallBotRosDriver"
    name="driver_node" type="driver_node" output="screen">
     <param name="port" type="str" value="/dev/ttyAMA0" />
-    <!-- <param name="port" type="str" value="/dev/pts/3" /> -->
+    <!-- <param name="port" type="str" value="/dev/ttyUSB0" /> -->
     <param name="cmd" type="str" value="/cmd_vel"/>
     <param name="baud_rate" type="int" value="115200"/>
-    <param name="odom_rate" type="int" value="30"/>
+    <param name="odom_rate" type="double" value="30"/>
     
     <param name="send_queue_size" type="int" value="100"/>
     <!-- 我建议使用100，不然odom可能一直处于饥饿 -->
@@ -21,5 +21,10 @@
     <param name="sendTF"  type="bool" value="true"/>
     <param name="sendOdom"  type="bool" value="true"/>
 
+    <param name="batt_rate" type="double" value="10"/>
+
+    <param name="batt_raw_name" type="str" value="batt_raw"/>
+    <param name="batt_percent_name" type="str" value="batt_percent"/>
+    <param name="batt_table_path" type="str" value="$(find smallBotRosDriver)/config/batt_table.csv" />
   </node>
 </launch>

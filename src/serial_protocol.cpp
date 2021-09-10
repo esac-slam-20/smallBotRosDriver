@@ -9,14 +9,12 @@ namespace smallBot
 {
     const size_t BUFFER_UPPER = 512;
     DEBUG_BLOCK(
-        void printHex(const serial_protocol::frame_data &f)
-        {
+        void printHex(const serial_protocol::frame_data &f) {
             std::lock_guard<std::mutex> lg(d_info_mutex);
             for (int i = 0; i < f.len; ++i)
                 DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)f.ptr[i] << " ");
             std::cout << std::dec << std::endl;
-        } void printHex(uint8_t ptr[512], size_t len)
-        {
+        } void printHex(uint8_t ptr[512], size_t len) {
             std::lock_guard<std::mutex> lg(d_info_mutex);
             for (int i = 0; i < len; ++i)
                 DEBUG_YELLOW_INFO(false, std::hex << (uint32_t)ptr[i] << " ");
@@ -184,17 +182,16 @@ namespace smallBot
                 }
                 cancelFlag = false;
                 uniqueId++;
-                auto cancelThread = std::thread([this]()
-                                                {
-                                                    int64_t x = uniqueId;
-                                                    std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
+                auto cancelThread = std::thread([this]() {
+                    int64_t x = uniqueId;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds));
 
-                                                    if (uniqueId == x)
-                                                    {
-                                                        cancelFlag = true;
-                                                        serial.cancel();
-                                                    }
-                                                });
+                    if (uniqueId == x)
+                    {
+                        cancelFlag = true;
+                        serial.cancel();
+                    }
+                });
                 //std::this_thread::sleep_for(std::chrono::milliseconds(timeout_millseconds - 2));
                 ack = get_oneFrame();
 
@@ -211,6 +208,14 @@ namespace smallBot
                         break;
                     }
                 }
+                else if (judge_frame_type(f) == CMD::set_batt)
+                {
+                    if (judge_frame_type(ack) == CMD::get_batt)
+                    {
+                        cancelThread.detach();
+                        break;
+                    }
+                }
                 else
                 {
                     if (judge_frame_type(ack) == CMD::get_ack)
@@ -221,10 +226,10 @@ namespace smallBot
                 }
                 cancelThread.join();
 
-            } while (1);
-
-            if (receive_callback.find(judge_frame_type(f)) != receive_callback.end())
-                receive_callback[judge_frame_type(f)](ack);
+            } while (!quitFlag);
+            if (!quitFlag)
+                if (receive_callback.find(judge_frame_type(f)) != receive_callback.end())
+                    receive_callback[judge_frame_type(f)](ack);
         }
         DEBUG_YELLOW_INFO(true, "quit send_thread\n");
     }
@@ -298,6 +303,19 @@ namespace smallBot
         std::shared_ptr<uint8_t[]> buffer(new uint8_t[6]);
         buffer[0] = CMD::head;
         buffer[1] = CMD::set_odom;
+        buffer[2] = 0;
+
+        uint16_t crc = get_crc(buffer.get(), 3);
+        buffer[3] = get_bit<0>(crc);
+        buffer[4] = get_bit<1>(crc);
+        buffer[5] = CMD::tail;
+        return frame_data(buffer, 6, 0);
+    }
+    serial_protocol::frame_data serial_protocol::get_set_batt_frame()
+    {
+        std::shared_ptr<uint8_t[]> buffer(new uint8_t[6]);
+        buffer[0] = CMD::head;
+        buffer[1] = CMD::set_batt;
         buffer[2] = 0;
 
         uint16_t crc = get_crc(buffer.get(), 3);
@@ -407,5 +425,10 @@ namespace smallBot
         set_bit<1>(f.ptr[3 + 13], o4);
         set_bit<2>(f.ptr[3 + 14], o4);
         set_bit<3>(f.ptr[3 + 15], o4);
+    }
+    void serial_protocol::get_batt(const frame_data &f, uint16_t &batt)
+    {
+        set_bit<0>(f.ptr[3 + 0], batt);
+        set_bit<1>(f.ptr[3 + 1], batt);
     }
 }

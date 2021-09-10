@@ -33,6 +33,8 @@ add_library(driver_base
   src/driver_base.cpp)
 add_library(driver_odom
   src/driver_odom.cpp)
+add_library(driver_batt
+  src/driver_batt.cpp)
 target_link_libraries(serial_protocol
    ${Boost_LIBRARIES}
    pthread
@@ -44,6 +46,11 @@ target_link_libraries(driver_base
 )
 
 target_link_libraries(driver_odom
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+  serial_protocol
+)
+target_link_libraries(driver_batt
   ${Boost_LIBRARIES}
   ${catkin_LIBRARIES}
   serial_protocol
@@ -60,4 +67,5 @@ target_link_libraries(driver_node
   serial_protocol
   driver_base
   driver_odom
+  driver_batt
 )

@@ -56,9 +56,14 @@ roslaunch smallBotRosDriver driver.launch #启动ros节点
 | wheelR| double  | 轮子半径 |
 | tpr| double  | 多少个tick一周 |
 | odom_name| str  | odom的话题名 |
-| odom_rate| int  | odom的采样频率 hz|
+| odom_rate| double  | odom的采样频率 hz|
 | odom_frame| str  | odom的frame名 |
 | child_frame| str  | odom的child frame 名 |
 | sendTF| bool  | 是否发TF |
 | sendOdom| bool  | 是否发话题 |
+| batt_rate| double  | 电池电量更新频率 |
+| batt_raw_name| str  | 电池电压的话题 |
+| batt_percent_name| str  | 电池电量百分比的话题 |
+| batt_table_path| str  | 电池电量查询表 |
+
 

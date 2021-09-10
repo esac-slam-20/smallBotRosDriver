@@ -39,6 +39,16 @@ int main(int argc, char *argv[])
     }
     serial_protocol sp(port, baud_rate, 5, 1);
     sp.setCallback(serial_protocol::CMD::set_odom, getOdom);
+    sp.setCallback(serial_protocol::CMD::set_batt, [=](const smallBot::serial_protocol::frame_data &f) {
+        YELLOW_INFO(true, "[" << f.timeStamp << "] BATT:");
+        for (int i = 0; i < f.len; i++)
+            YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+        std::cout << std::dec << std::endl;
+        uint16_t batt;
+        serial_protocol::get_batt(f, batt);
+        YELLOW_INFO(false, "analysis batt:"
+                               << batt << std::endl);
+    });
     do
     {
         GREEN_INFO(true,
@@ -49,7 +59,8 @@ int main(int argc, char *argv[])
 3.set pid [p i d]\n\
 4.set save\n\
 5.set ignore\n\
-6.quit\n\
+6.set batt\n\
+-1.quit\n\
 =========================\n");
         std::cin >> key;
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -113,8 +124,16 @@ int main(int argc, char *argv[])
             std::cout << std::dec << std::endl;
             sp.set_oneFrame(f);
         }
-
-    } while (key != 6);
+        else if (key == 6)
+        {
+            GREEN_INFO(false, "batt " << std::endl);
+            auto f = sp.get_set_batt_frame();
+            for (int i = 0; i < f.len; i++)
+                YELLOW_INFO(false, std::hex << int(f.ptr[i]) << " ");
+            std::cout << std::dec << std::endl;
+            sp.set_oneFrame(f);
+        }
+    } while (key != -1);
     GREEN_INFO(true, "BYE BYE\n");
     return 0;
 }
