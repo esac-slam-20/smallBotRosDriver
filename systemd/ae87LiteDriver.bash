@@ -4,7 +4,7 @@ DIRNAME=`dirname $SCRIPT`
 
 echo '[Unit]
 Description="ae87-lite ros driver service"
-After=network.target
+After=roscore.service
 Wants=roscore.service
 
 [Service]

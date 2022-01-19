@@ -1,0 +1,14 @@
+[Unit]
+Description="ae87-lite ros driver service"
+After=roscore.service
+Wants=roscore.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c ". /opt/ros/noetic/setup.sh; . /home/pi/ros_ws/src/smallBotRosDriver/systemd/../../../devel/setup.bash;roslaunch smallBotRosDriver driver.launch"
+
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
