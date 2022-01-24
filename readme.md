@@ -3,7 +3,20 @@
 
 <img src="pic/smallBot.png" style="zoom:50%;" />
 
+## 项目介绍
+
+1. 这是一个单纯的从兴趣出发的项目。
+2. 整车的运算单元为一块MCU和树莓派4B
+   * MCU部分主要实现底层功能，例如电平控制等，实现协议。
+   * 树莓派4B承担了主要的复杂运算，以及为了之后的功能拓展留下算力空间(例如万一想在上面跑SLAM呢)
+3. 本仓库仅仅为该项目上位机驱动部分。
+4. 设计的目标，是用尽可能低的成本设计出一台各方面功能都还凑合的玩具，目前已经实现的功能如下：
+   * 可通过ros控制底盘，默认情况下订阅的是`cmd_vel`话题
+   * 实现了一个里程计，可通过话题或者tf获取。
+   * 实现了电量监控。
+
 ## 主要功能
+
 ### driver_node
 * 接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)转化数据，并且通过串口发送到下位机。
 * 根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)从下位机读取数据，然后转化到TF数据和[nav_msgs/Odometry](http://docs.ros.org/en/kinetic/api/nav_msgs/html/msg/Odometry.html)话题。
