@@ -1,6 +1,8 @@
 # smallBotRosDriver
-这是一个用来运行在ros noetic的ros驱动库，主要服务于[smallBot](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot)
-。
+这是一个用来运行在ros noetic的ros驱动库，主要服务于[smallBot](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot)。
+
+<img src="pic/smallBot.png" style="zoom:50%;" />
+
 ## 主要功能
 ### driver_node
 * 接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)转化数据，并且通过串口发送到下位机。
