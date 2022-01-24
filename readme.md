@@ -1,5 +1,5 @@
 # smallBotRosDriver
-这是一个用来运行在ros noetic的ros驱动库，主要服务于[smallBot](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot)。
+这是一个用来运行在ros noetic的ros驱动库，主要服务于[smallBot](https://github.com/esac-slam-20/smallbot)。
 
 <img src="pic/smallBot.png" style="zoom:50%;" />
 
@@ -18,10 +18,10 @@
 ## 主要功能
 
 ### driver_node
-* 接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)转化数据，并且通过串口发送到下位机。
-* 根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)从下位机读取数据，然后转化到TF数据和[nav_msgs/Odometry](http://docs.ros.org/en/kinetic/api/nav_msgs/html/msg/Odometry.html)话题。
+* 接收[geometry_msgs/Twist](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html),并且根据[协议](https://github.com/esac-slam-20/smallbot-mcu/blob/master/docs/protocol.md)转化数据，并且通过串口发送到下位机。
+* 根据[协议](https://github.com/esac-slam-20/smallbot-mcu/blob/master/docs/protocol.md)从下位机读取数据，然后转化到TF数据和[nav_msgs/Odometry](http://docs.ros.org/en/kinetic/api/nav_msgs/html/msg/Odometry.html)话题。
 ### serial_control
-* 类似串口调试助手？实现[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)的所有功能，主要用来调试小车用的
+* 类似串口调试助手？实现[协议](https://github.com/esac-slam-20/smallbot-mcu/blob/master/docs/protocol.md)的所有功能，主要用来调试小车用的
 
   ![](pic/control_serial.png)
 ## 安装
@@ -56,7 +56,7 @@ roslaunch smallBotRosDriver driver.launch #启动ros节点
 * [driver_odom](src/driver_odom.h)
 > 主要用于接收下位机odom数据，并解析到ros话题和tf上。
 * [serial_protocol](src/serial_protocol.h)
-> 根据和下位机的通讯[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)所定义的一个底层工具，本项目中的所有功能都依附于这个
+> 根据和下位机的通讯[协议](https://github.com/esac-slam-20/smallbot-mcu/blob/master/docs/protocol.md)所定义的一个底层工具，本项目中的所有功能都依附于这个
 
 ## 参数介绍
 ### [driver_node](launch/driver.launch)
