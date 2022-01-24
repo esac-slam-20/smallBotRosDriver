@@ -7,6 +7,8 @@
 * 根据[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)从下位机读取数据，然后转化到TF数据和[nav_msgs/Odometry](http://docs.ros.org/en/kinetic/api/nav_msgs/html/msg/Odometry.html)话题。
 ### serial_control
 * 类似串口调试助手？实现[协议](https://tea.lan.bigkeer.cn/SLAM2020/Project-SmallBot-MCU)的所有功能，主要用来调试小车用的
+
+  ![](pic/control_serial.png)
 ## 安装
 1. 各种ros库
 > 缺啥`apt install`一下啥
@@ -22,7 +24,6 @@
 ## 安装方式
 ```
 git clone xxx
-git submodule update --init
 cd ws
 catkin_make
 ```
