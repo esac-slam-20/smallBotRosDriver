@@ -39,6 +39,8 @@
 ## 安装方式
 ```
 git clone xxx
+cd xxx/src
+git clone https://github.com/LittleDang/timerAndColor.git
 cd ws
 catkin_make
 ```
@@ -49,7 +51,7 @@ roslaunch smallBotRosDriver driver.launch #启动ros节点
 ```
 
 ## 功能介绍
-* [timerAndColor](src/timerAndColor)
+* [timerAndColor](https://github.com/LittleDang/timerAndColor)
 > 主要用于颜色输出和时间获取
 * [driver_base](src/driver_base.h)
 > 主要用于解析ros 的 cmd指令，并发送到下位机
