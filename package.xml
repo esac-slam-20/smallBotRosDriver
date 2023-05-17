@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>smallBotRosDriver</name>
+  <name>small_bot_ros_driver</name>
   <version>0.0.0</version>
-  <description>The smallBotRosDriver package</description>
+  <description>The small_bot_ros_driver package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
