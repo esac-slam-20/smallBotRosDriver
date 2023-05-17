@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="smallBotRosDriver"
+  <node pkg="small_bot_ros_driver"
    name="driver_node" type="driver_node" output="screen">
     <param name="port" type="str" value="/dev/ttyAMA0" />
     <!-- <param name="port" type="str" value="/dev/ttyUSB0" /> -->
