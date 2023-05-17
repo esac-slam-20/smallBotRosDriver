@@ -9,7 +9,7 @@ Wants=roscore.service
 
 [Service]
 Type=simple
-ExecStart=/bin/bash -c ". /opt/ros/noetic/setup.sh; . '$DIRNAME'/../../../devel/setup.bash;roslaunch smallBotRosDriver driver.launch"
+ExecStart=/bin/bash -c ". /opt/ros/noetic/setup.sh; . '$DIRNAME'/../../../devel/setup.bash;roslaunch small_bot_ros_driver driver.launch"
 
 Restart=on-failure
 RestartSec=5s

@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="smallBotRosDriver"
+  <node pkg="small_bot_ros_driver"
    name="driver_node" type="driver_node" output="screen">
     <param name="port" type="str" value="/dev/ttyAMA0" />
     <!-- <param name="port" type="str" value="/dev/ttyUSB0" /> -->
@@ -25,6 +25,6 @@
 
     <param name="batt_raw_name" type="str" value="batt_raw"/>
     <param name="batt_percent_name" type="str" value="batt_percent"/>
-    <param name="batt_table_path" type="str" value="$(find smallBotRosDriver)/config/batt_table.csv" />
+    <param name="batt_table_path" type="str" value="$(find small_bot_ros_driver)/config/batt_table.csv" />
   </node>
 </launch>

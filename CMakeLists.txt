@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(smallBotRosDriver)
+project(small_bot_ros_driver)
 add_compile_options(-std=c++17)
 SET(CMAKE_BUILD_TYPE "Release")
 find_package(catkin REQUIRED 
@@ -14,7 +14,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES smallBotRosDriver
+#  LIBRARIES small_bot_ros_driver
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
